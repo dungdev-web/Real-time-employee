@@ -1,0 +1,14 @@
+@use "./variables" as *;
+@use "./mixins" as *;
+
+body {
+  font-family: system-ui, sans-serif;
+  color: $text-color;
+}
+
+.app {
+  @include flex-center;
+  height: 100vh;
+  background: $primary-color;
+  color: white;
+}
