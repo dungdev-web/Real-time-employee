@@ -13,13 +13,13 @@ const api = axios.create({
 export const ownerAPI = {
   // Create access code for phone login
   createAccessCode: async (phoneNumber) => {
-    const response = await api.post('/api/owner/create-access-code', { phoneNumber });
+    const response = await api.post('/api/owner/access-code', { phoneNumber });
     return response.data;
   },
 
   // Validate access code
   validateAccessCode: async (phoneNumber, accessCode) => {
-    const response = await api.post('/api/owner/validate-access-code', {
+    const response = await api.post('/api/owner/access-code/verify', {
       phoneNumber,
       accessCode
     });
@@ -28,7 +28,7 @@ export const ownerAPI = {
 
   // Get all employees
   getAllEmployees: async () => {
-    const response = await api.get('/api/owner/employees');
+    const response = await api.get('/api/owner/all-employees');
     return response.data;
   },
 
@@ -61,13 +61,13 @@ export const ownerAPI = {
 export const employeeAPI = {
   // Send login code to email
   loginEmail: async (email) => {
-    const response = await api.post('/api/employee/login-email', { email });
+    const response = await api.post('/api/employee/email', { email });
     return response.data;
   },
 
   // Validate access code
   validateAccessCode: async (email, accessCode) => {
-    const response = await api.post('/api/employee/validate-access-code', {
+    const response = await api.post('/api/employee/access-code/verify-email', {
       email,
       accessCode
     });

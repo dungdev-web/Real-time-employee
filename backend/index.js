@@ -32,11 +32,12 @@ try {
   console.error('Failed to initialize Firebase. Please check configuration.');
   process.exit(1);
 }
+const URL = process.env.FRONTEND_URL
 
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 app.use(express.json());
@@ -220,6 +221,8 @@ server.listen(PORT, () => {
 ║  Firebase: Connected                                  ║
 ╚═══════════════════════════════════════════════════════╝
   `);
+console.log(URL);
+
 });
 
 // Handle uncaught exceptions
