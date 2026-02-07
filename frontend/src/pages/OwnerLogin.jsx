@@ -111,11 +111,17 @@ function OwnerLogin() {
           <form onSubmit={handleSendCode} className="login-form">
             <div className="form-group">
               <label>
-                <svg className="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-  <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
-  <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
-</svg>
-
+                <svg
+                  className="input-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
+                  <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2" />
+                </svg>
                 Phone Number
               </label>
               <div className="input-wrapper">
@@ -264,58 +270,58 @@ function OwnerLogin() {
                 {error}
               </div>
             )}
-          <div className="button-container" style={{gap:"10px"}}>
-            <button type="submit" disabled={loading} className="btn-primary">
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M22 11.08V12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C15.3 2 18.23 3.58 20 6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M22 4L12 14.01L9 11.01"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Verify Code
-                </>
-              )}{" "}
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="btn-secondary"
-              disabled={loading}
-            >
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M19 12H5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M12 19L5 12L12 5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Back
-            </button>
+            <div className="button-container" style={{ gap: "10px" }}>
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M22 11.08V12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C15.3 2 18.23 3.58 20 6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M22 4L12 14.01L9 11.01"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Verify Code
+                  </>
+                )}{" "}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="btn-secondary"
+                disabled={loading}
+              >
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M19 12H5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M12 19L5 12L12 5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Back
+              </button>
             </div>
           </form>
         )}
