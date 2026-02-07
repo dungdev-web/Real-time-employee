@@ -131,7 +131,7 @@ function EmployeeLogin() {
                 </svg>
                 Email Address
               </label>
-              <div className="input-wrapper">
+              {/* <div className="input-wrapper"> */}
                 <input
                   type="email"
                   value={email}
@@ -140,7 +140,7 @@ function EmployeeLogin() {
                   required
                   disabled={loading}
                 />
-              </div>
+              {/* </div> */}
               <small>Enter your work email address</small>
             </div>
 
@@ -240,7 +240,7 @@ function EmployeeLogin() {
                 </svg>
                 Access Code
               </label>
-              <div className="input-wrapper">
+              {/* <div className="input-wrapper"> */}
                 <input
                   type="text"
                   value={accessCode}
@@ -251,7 +251,7 @@ function EmployeeLogin() {
                   disabled={loading}
                   className="code-input"
                 />
-              </div>
+              {/* </div> */}
               <small>Check your email for the access code</small>
             </div>
 

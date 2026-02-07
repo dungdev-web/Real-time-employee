@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import socketService from '../lib/socket';
-import '../css/Chat.css';
+import '../css/Chat.scss';
 
 function Chat({ currentUserId, currentUserType, otherUserId, otherUserName }) {
   const [messages, setMessages] = useState([]);
@@ -9,64 +9,99 @@ function Chat({ currentUserId, currentUserType, otherUserId, otherUserName }) {
   const [connected, setConnected] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const setupCompleteRef = useRef(false);
 
+  // Single effect to set up socket listeners (runs once on mount)
   useEffect(() => {
-    // Connect socket
+    // Prevent double setup in React Strict Mode
+    if (setupCompleteRef.current) return;
+    setupCompleteRef.current = true;
+
+    console.log('Setting up socket listeners for Chat');
+    
     const socket = socketService.connect();
     
-    socket.on('connect', () => {
+    const handleConnect = () => {
       setConnected(true);
-      console.log('Chat connected');
-    });
+      console.log('Chat connected:', socket.id);
+    };
 
-    socket.on('disconnect', () => {
+    const handleDisconnect = () => {
       setConnected(false);
       console.log('Chat disconnected');
-    });
+    };
 
-    // Join conversation
-    socketService.joinConversation(currentUserId, currentUserType, otherUserId);
+    const handleLoadMessages = (loadedMessages) => {
+      console.log('Loaded messages:', loadedMessages);
+      if (Array.isArray(loadedMessages)) {
+        const sortedMessages = loadedMessages.sort((a, b) => a.timestamp - b.timestamp);
+        setMessages(sortedMessages);
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    };
 
-    // Load previous messages
-    socketService.onLoadMessages((loadedMessages) => {
-      setMessages(loadedMessages.sort((a, b) => a.timestamp - b.timestamp));
-      scrollToBottom();
-    });
-
-    // Listen for new messages
-    socketService.onNewMessage((message) => {
+    const handleNewMessage = (message) => {
+      console.log('New message received:', message);
       setMessages((prev) => {
         // Avoid duplicates
         if (prev.find(m => m.messageId === message.messageId)) {
+          console.log('Duplicate message, ignoring');
           return prev;
         }
+        console.log('Adding new message to state');
         return [...prev, message];
       });
-      scrollToBottom();
-    });
-
-    // Listen for typing indicator
-    socketService.onUserTyping(({ userId, isTyping }) => {
-      if (userId !== currentUserId) {
-        setIsTyping(isTyping);
-      }
-    });
-
-    return () => {
-      socketService.removeAllListeners();
+      setTimeout(() => scrollToBottom(), 100);
     };
+
+    const handleUserTyping = ({ userId, isTyping: typing }) => {
+      console.log('Typing indicator:', { userId, typing, currentUserId });
+      if (userId !== currentUserId) {
+        setIsTyping(typing);
+      }
+    };
+
+    // Register listeners with socket service
+    socketService.registerListener('load-messages', handleLoadMessages);
+    socketService.registerListener('new-message', handleNewMessage);
+    socketService.registerListener('user-typing', handleUserTyping);
+
+    // Manually attach connection listeners (these should fire multiple times)
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+
+    // Cleanup function
+    return () => {
+      // Don't remove listeners - keep them for reconnections
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      setupCompleteRef.current = false;
+    };
+  }, []); // Empty dependency array - runs only on mount
+
+  // Separate effect to join conversation (runs when participants change)
+  useEffect(() => {
+    if (currentUserId && otherUserId) {
+      console.log('Joining conversation:', { currentUserId, otherUserId });
+      socketService.joinConversation(currentUserId, currentUserType, otherUserId);
+    }
   }, [currentUserId, currentUserType, otherUserId]);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     
     if (!newMessage.trim()) return;
+
+    console.log('Sending message:', {
+      senderId: currentUserId,
+      senderType: currentUserType,
+      receiverId: otherUserId,
+      message: newMessage.trim()
+    });
 
     socketService.sendMessage(
       currentUserId,
@@ -145,57 +180,119 @@ function Chat({ currentUserId, currentUserType, otherUserId, otherUserName }) {
 
   return (
     <div className="chat-container">
+      {/* Status Bar */}
       <div className="chat-status">
-        <span className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}></span>
-        <span className="status-text">{connected ? 'Connected' : 'Connecting...'}</span>
+        <div className="status-indicator-wrapper">
+          <span className={`status-dot ${connected ? 'connected' : 'disconnected'}`}></span>
+          <span className="status-text">{connected ? 'Connected' : 'Connecting...'}</span>
+        </div>
+        {connected && messages.length > 0 && (
+          <span className="message-count">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {messages.length}
+          </span>
+        )}
       </div>
 
+      {/* Messages Container */}
       <div className="messages-container">
         {Object.keys(messageGroups).length === 0 ? (
           <div className="no-messages">
-            <p>No messages yet. Start the conversation!</p>
+            <div className="empty-state">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 9H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M9 13H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <h3>No messages yet</h3>
+              <p>Start the conversation with {otherUserName}!</p>
+            </div>
           </div>
         ) : (
           Object.entries(messageGroups).map(([date, msgs]) => (
-            <div key={date}>
-              <div className="date-divider">{date}</div>
-              {msgs.map((msg) => (
-                <div
-                  key={msg.messageId}
-                  className={`message ${msg.senderId === currentUserId ? 'sent' : 'received'}`}
-                >
-                  <div className="message-content">
-                    <p>{msg.message}</p>
-                    <span className="message-time">{formatTime(msg.timestamp)}</span>
+            <div key={date} className="message-group">
+              <div className="date-divider">
+                <span>{date}</span>
+              </div>
+              {msgs.map((msg, index) => {
+                const isSent = msg.senderId === currentUserId;
+                
+                return (
+                  <div
+                    key={msg.messageId}
+                    className={`message ${isSent ? 'sent' : 'received'}`}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="message-bubble">
+                      <p className="message-text">{msg.message}</p>
+                      <div className="message-meta">
+                        <span className="message-time">{formatTime(msg.timestamp)}</span>
+                        {isSent && (
+                          <svg viewBox="0 0 24 24" fill="none" className="check-icon">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ))
         )}
         
         {isTyping && (
           <div className="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-            {otherUserName} is typing...
+            <div className="typing-bubble">
+              <div className="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            <span className="typing-text">{otherUserName} is typing...</span>
           </div>
         )}
         
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input Form */}
       <form onSubmit={handleSendMessage} className="message-input-form">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={handleTyping}
-          placeholder="Type a message..."
-          disabled={!connected}
-        />
-        <button type="submit" disabled={!connected || !newMessage.trim()}>
-          Send
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={handleTyping}
+            placeholder={`Message ${otherUserName}...`}
+            disabled={!connected}
+          />
+          <button 
+            type="button" 
+            className="emoji-button"
+            disabled={!connected}
+            title="Emoji (coming soon)"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="9" cy="9" r="1" fill="currentColor"/>
+              <circle cx="15" cy="9" r="1" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <button 
+          type="submit" 
+          className="send-button"
+          disabled={!connected || !newMessage.trim()}
+        >
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Send</span>
         </button>
       </form>
     </div>

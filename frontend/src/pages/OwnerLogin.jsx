@@ -124,7 +124,7 @@ function OwnerLogin() {
                 </svg>
                 Phone Number
               </label>
-              <div className="input-wrapper">
+              {/* <div className="input-wrapper"> */}
                 <input
                   type="tel"
                   value={phoneNumber}
@@ -133,7 +133,7 @@ function OwnerLogin() {
                   required
                   disabled={loading}
                 />
-              </div>
+              {/* </div> */}
               <small>Enter your phone number with country code</small>
             </div>
 
