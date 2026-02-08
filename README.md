@@ -428,4 +428,3 @@ Built as a coding challenge demonstrating full-stack development skills with:
 
 ---
 
-**Note:** All code in this project is original and built from scratch according to the challenge requirements. No code was copied or plagiarized from external sources.
