@@ -1,31 +1,32 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
 
 class SocketService {
   constructor() {
     this.socket = null;
+    this.listeners = new Map(); // Use Map to track listeners by event name
   }
 
   connect() {
     if (!this.socket) {
       this.socket = io(SOCKET_URL, {
-        transports: ['websocket', 'polling'],
+        transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
       });
 
-      this.socket.on('connect', () => {
-        console.log('Socket connected:', this.socket.id);
+      this.socket.on("connect", () => {
+        console.log("Socket connected:", this.socket.id);
       });
 
-      this.socket.on('disconnect', () => {
-        console.log('Socket disconnected');
+      this.socket.on("disconnect", () => {
+        console.log("Socket disconnected");
       });
 
-      this.socket.on('error', (error) => {
-        console.error('Socket error:', error);
+      this.socket.on("error", (error) => {
+        console.error("Socket error:", error);
       });
     }
     return this.socket;
@@ -35,76 +36,116 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.listeners.clear();
     }
   }
 
-  joinConversation(userId, userType, otherUserId) {
+  joinConversation(payload) {
     if (this.socket) {
-      this.socket.emit('join-conversation', {
-        userId,
-        userType,
-        otherUserId
-      });
+      this.socket.emit("join-conversation", payload);
     }
+    console.log("JOIN:", payload);
   }
 
   leaveConversation(conversationId) {
     if (this.socket) {
-      this.socket.emit('leave-conversation', { conversationId });
+      this.socket.emit("leave-conversation", { conversationId });
     }
   }
 
   sendMessage(senderId, senderType, receiverId, message) {
     if (this.socket) {
-      this.socket.emit('send-message', {
+      this.socket.emit("send-message", {
         senderId,
         senderType,
         receiverId,
-        message
+        message,
       });
     }
   }
 
-  onLoadMessages(callback) {
-    if (this.socket) {
-      this.socket.on('load-messages', callback);
+  /**
+   * Register a listener for an event
+   * Prevents duplicate listeners by removing old one before adding new
+   */
+  registerListener(eventName, callback) {
+    if (!this.socket) {
+      console.warn("Socket not connected");
+      return;
     }
+
+    // Remove old listener if exists
+    if (this.listeners.has(eventName)) {
+      const oldCallback = this.listeners.get(eventName);
+      this.socket.off(eventName, oldCallback);
+      console.log(`Removed old ${eventName} listener`);
+    }
+
+    // Add new listener
+    this.socket.on(eventName, callback);
+    this.listeners.set(eventName, callback);
+    console.log(`Registered ${eventName} listener`);
+  }
+
+  // Keep old methods for backward compatibility
+  onLoadMessages(callback) {
+    this.registerListener("load-messages", callback);
   }
 
   onNewMessage(callback) {
-    if (this.socket) {
-      this.socket.on('new-message', callback);
-    }
+    this.registerListener("new-message", callback);
   }
 
   markAsRead(conversationId, userId) {
     if (this.socket) {
-      this.socket.emit('mark-as-read', { conversationId, userId });
+      this.socket.emit("mark-as-read", { conversationId, userId });
     }
   }
 
   onMessagesRead(callback) {
-    if (this.socket) {
-      this.socket.on('messages-read', callback);
-    }
+    this.registerListener("messages-read", callback);
   }
 
-  sendTyping(conversationId, userId, isTyping) {
+  sendTyping(userId, isTyping) {
     if (this.socket) {
-      this.socket.emit('typing', { conversationId, userId, isTyping });
+      this.socket.emit("typing", { userId, isTyping });
     }
   }
 
   onUserTyping(callback) {
+    this.registerListener("typing", callback);
+  }
+
+  /**
+   * Remove a specific listener
+   */
+  removeListener(eventName) {
+    if (this.listeners.has(eventName)) {
+      const callback = this.listeners.get(eventName);
+      if (this.socket) {
+        this.socket.off(eventName, callback);
+      }
+      this.listeners.delete(eventName);
+      console.log(`Removed ${eventName} listener`);
+    }
+  }
+  emit(event, payload) {
     if (this.socket) {
-      this.socket.on('user-typing', callback);
+      this.socket.emit(event, payload);
     }
   }
 
+  /**
+   * Remove all listeners
+   */
   removeAllListeners() {
-    if (this.socket) {
-      this.socket.removeAllListeners();
-    }
+    this.listeners.forEach((callback, eventName) => {
+      if (this.socket) {
+        this.socket.off(eventName, callback);
+      }
+    });
+    this.listeners.clear();
+    console.log("Removed all listeners");
   }
 
   getSocket() {

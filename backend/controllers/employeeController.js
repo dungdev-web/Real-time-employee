@@ -5,12 +5,13 @@ const {
   isValidEmail,
   sanitizeInput,
   hashPassword,
-  verifyPassword
+  verifyPassword,
+  isAccessCodeExpired
 } = require('../utils/helpers');
 
 /**
  * POST /api/employee/login-email
- * Send access code to employee's email
+ * Step 1: Send access code to employee email
  */
 const loginEmail = async (req, res) => {
   try {
@@ -71,9 +72,14 @@ const loginEmail = async (req, res) => {
       // Continue anyway - code is saved in DB
     }
 
+    // ✅ FIXED: Return ownerId and employeeId for messaging
     res.json({ 
       success: true,
       accessCode: accessCode, // For testing purposes
+      employeeId: employeeId, // ← Add employee ID
+      ownerId: employee.ownerId || employee.assignedBy, // ← Add owner ID (phone number)
+      email: employee.email,
+      name: employee.name,
       message: 'Access code sent to your email'
     });
 
@@ -88,23 +94,30 @@ const loginEmail = async (req, res) => {
 
 /**
  * POST /api/employee/validate-access-code
- * Validate employee's access code
+ * Step 2: Validate access code and authenticate employee
  */
 const validateAccessCode = async (req, res) => {
   try {
-    const { accessCode, email } = req.body;
+    const { email, accessCode } = req.body; // ← Take EMAIL, not employeeId!
 
-    if (!accessCode || !email) {
+    if (!email || !accessCode) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Access code and email are required' 
+        error: 'Email and access code required' 
+      });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid email format' 
       });
     }
 
     const db = getDatabase();
     const normalizedEmail = email.toLowerCase();
 
-    // Find employee by email
+    // ✅ Find employee by EMAIL first (more secure than employeeId)
     const employeesRef = db.ref('employees');
     const snapshot = await employeesRef.orderByChild('email').equalTo(normalizedEmail).once('value');
     const employees = snapshot.val();
@@ -112,13 +125,14 @@ const validateAccessCode = async (req, res) => {
     if (!employees) {
       return res.status(404).json({ 
         success: false, 
-        error: 'Employee not found' 
+        error: 'No account found with this email' 
       });
     }
 
     const employeeId = Object.keys(employees)[0];
     const employee = employees[employeeId];
 
+    // Check access code
     if (employee.accessCode !== accessCode) {
       return res.status(401).json({ 
         success: false, 
@@ -126,30 +140,33 @@ const validateAccessCode = async (req, res) => {
       });
     }
 
-    // Check if code is expired (10 minutes)
-    const codeAge = Date.now() - (employee.accessCodeCreatedAt || 0);
-    if (codeAge > 600000) {
+    // Check if access code has expired (10 minutes)
+    if (isAccessCodeExpired(employee.accessCodeCreatedAt, 600000)) {
       return res.status(401).json({ 
         success: false, 
-        error: 'Access code has expired' 
+        error: 'Access code expired. Please request a new one.' 
       });
     }
 
-    // Clear the access code after successful validation
+    // Clear access code after use
     await db.ref(`employees/${employeeId}`).update({
-      accessCode: '',
-      accessCodeCreatedAt: null,
-      lastLogin: Date.now()
+      accessCode: null,
+      accessCodeCreatedAt: null
     });
 
-    // Return employee data (without sensitive info)
-    const { password, setupToken, ...safeEmployee } = employee;
-
+    // ✅ Return complete employee data including ownerId
     res.json({ 
       success: true,
-      employeeId,
-      employee: safeEmployee,
-      message: 'Access code validated successfully'
+      employee: {
+        employeeId: employee.employeeId,
+        email: employee.email,
+        name: employee.name,
+        phone: employee.phone,
+        department: employee.department,
+        role: employee.role,
+        ownerId: employee.ownerId || employee.assignedBy // ← Owner's phone
+      },
+      message: 'Login successful' 
     });
 
   } catch (error) {
@@ -246,6 +263,10 @@ const setupAccount = async (req, res) => {
  * GET /api/employee/profile/:employeeId
  * Get employee profile
  */
+/**
+ * GET /api/employee/profile/:employeeId
+ * Get employee profile
+ */
 const getProfile = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -269,12 +290,18 @@ const getProfile = async (req, res) => {
       });
     }
 
-    // Remove sensitive data
-    const { password, accessCode, setupToken, ...safeEmployee } = employee;
-
+    // ✅ FIXED: Return only safe data including ownerId
     res.json({ 
       success: true,
-      employee: safeEmployee
+      employee: {
+        employeeId: employee.employeeId,
+        email: employee.email,
+        name: employee.name,
+        phone: employee.phone,
+        department: employee.department,
+        role: employee.role,
+        ownerId: employee.ownerId || employee.assignedBy // ← ADD THIS!
+      }
     });
 
   } catch (error) {

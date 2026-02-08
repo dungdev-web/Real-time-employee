@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ownerAPI } from '../services/api';
-import Chat from '../components/Chat';
 import '../css/OwnerDashboard.scss';
 
 function OwnerDashboard() {
@@ -9,9 +8,9 @@ function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [ownerId, setOwnerId] = useState('');
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -28,6 +27,13 @@ function OwnerDashboard() {
       navigate('/owner/login');
       return;
     }
+    
+    // ✅ FIXED: Get ownerId from localStorage
+    const ownerPhone = localStorage.getItem('ownerId');
+    if (ownerPhone) {
+      setOwnerId(ownerPhone);
+    }
+    
     loadEmployees();
   }, [navigate]);
 
@@ -50,14 +56,25 @@ function OwnerDashboard() {
       [e.target.name]: e.target.value
     });
   };
-
+  
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
 
+    // ✅ FIXED: Validate ownerId exists
+    if (!ownerId) {
+      setError('Owner ID not found. Please refresh the page.');
+      return;
+    }
+
     try {
-      const response = await ownerAPI.createEmployee(formData);
+      // ✅ FIXED: Pass ownerId to API
+      const response = await ownerAPI.createEmployee({
+        ...formData,
+        ownerId: ownerId  // ← ADD THIS!
+      });
+      
       if (response.success) {
         setMessage('Employee added successfully! Setup email sent.');
         setFormData({ name: '', email: '', department: '', phone: '', role: '' });
@@ -421,31 +438,7 @@ function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Chat Section */}
-        {showChat && selectedEmployee && (
-          <div className="chat-section glass-card">
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <h3>Chat with {selectedEmployee.name}</h3>
-              </div>
-              <button onClick={() => setShowChat(false)} className="close-chat-button">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            <Chat
-              currentUserId={localStorage.getItem('ownerId')}
-              currentUserType="owner"
-              otherUserId={selectedEmployee.employeeId}
-              otherUserName={selectedEmployee.name}
-            />
-          </div>
-        )}
+      
       </div>
     </div>
   );

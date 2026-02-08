@@ -188,7 +188,7 @@ const getEmployee = async (req, res) => {
  */
 const createEmployee = async (req, res) => {
   try {
-    const { name, email, department, phone, role } = req.body;
+    const { name, email, department, phone, role, ownerId } = req.body;
 
     // Validation
     if (!name || !email || !department) {
@@ -205,6 +205,14 @@ const createEmployee = async (req, res) => {
       });
     }
 
+    // ✅ Validate ownerId (required!)
+    if (!ownerId) {
+      return res.status(400).json({
+        success: false,
+        error: "Owner ID is required",
+      });
+    }
+
     const db = getDatabase();
     const employeeId = generateEmployeeId();
     const setupToken = generateSetupToken();
@@ -217,6 +225,7 @@ const createEmployee = async (req, res) => {
       department: sanitizeInput(department),
       phone: phone ? formatPhoneNumber(phone) : "",
       role: role ? sanitizeInput(role) : "Employee",
+      ownerId: String(ownerId).startsWith('+') ? String(ownerId) : `+${ownerId}`, // ✅ ADD THIS!
       setupToken,
       setupTokenCreatedAt: Date.now(),
       accountSetup: false,
@@ -242,6 +251,7 @@ const createEmployee = async (req, res) => {
     res.json({
       success: true,
       employeeId,
+      ownerId: employeeData.ownerId, // ✅ Return it in response
       message: "Employee created successfully. Setup email sent.",
       setupLink, // For testing purposes
     });

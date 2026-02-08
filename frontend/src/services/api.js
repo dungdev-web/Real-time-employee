@@ -40,19 +40,19 @@ export const ownerAPI = {
 
   // Create new employee
   createEmployee: async (employeeData) => {
-    const response = await api.post('/api/owner/create-employee', employeeData);
+    const response = await api.post('/api/owner/employee', employeeData);
     return response.data;
   },
 
   // Update employee
-  updateEmployee: async (employeeData) => {
-    const response = await api.put('/api/owner/update-employee', employeeData);
+  updateEmployee: async (employeeId,employeeData) => {
+    const response = await api.put(`api/owner/employee/${employeeId}`, employeeData);
     return response.data;
   },
 
   // Delete employee
   deleteEmployee: async (employeeId) => {
-    const response = await api.post('/api/owner/delete-employee', { employeeId });
+    const response = await api.delete(`/api/owner/employee/${employeeId }`);
     return response.data;
   }
 };
@@ -92,7 +92,7 @@ export const employeeAPI = {
 
   // Update profile
   updateProfile: async (profileData) => {
-    const response = await api.put('/api/employee/update-profile', profileData);
+    const response = await api.put('/api/employee/profile', profileData);
     return response.data;
   },
 
@@ -109,6 +109,24 @@ export const employeeAPI = {
     });
     return response.data;
   }
+};
+// Chat API calls
+export const chatAPI = {
+  // Lấy danh sách conversation (sidebar)
+  getConversations: async (userId) => {
+    const res = await api.get(`/api/chat/conversations`, {
+      params: { userId }
+    });
+    return res.data;
+  },
+
+  // Lấy tin nhắn của 1 conversation
+  getMessages: async (conversationId) => {
+    const res = await api.get(`/api/chat/messages/${conversationId}`);
+    return res.data;
+  },
+
+
 };
 
 export default api;

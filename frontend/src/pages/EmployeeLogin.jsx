@@ -19,8 +19,12 @@ function EmployeeLogin() {
     setLoading(true);
 
     try {
+      // ✅ Send email to get access code
       const response = await employeeAPI.loginEmail(email);
       if (response.success) {
+        // ✅ Save email in sessionStorage (temporary)
+        sessionStorage.setItem("loginEmail", email);
+        
         setMessage("Access code sent to your email!");
         setStep(2);
       } else {
@@ -39,13 +43,31 @@ function EmployeeLogin() {
     setLoading(true);
 
     try {
-      const response = await employeeAPI.validateAccessCode(email, accessCode);
+      // ✅ Get email from sessionStorage
+      const loginEmail = sessionStorage.getItem("loginEmail");
+      
+      if (!loginEmail) {
+        setError("Session expired. Please start over.");
+        setStep(1);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Send EMAIL + code (not employeeId!)
+      const response = await employeeAPI.validateAccessCode(loginEmail, accessCode);
+      
       if (response.success) {
+        // ✅ Save employee data including ownerId
         localStorage.setItem("userType", "employee");
-        localStorage.setItem("email", email);
-        localStorage.setItem("employeeId", response.employeeId);
+        localStorage.setItem("email", loginEmail);
+          localStorage.setItem("ownerId", response.employee.ownerId);
+        localStorage.setItem("employeeId", response.employee.employeeId);
         localStorage.setItem("employeeData", JSON.stringify(response.employee));
 
+        // ✅ Clear temporary session
+        sessionStorage.removeItem("loginEmail");
+        
+        // Redirect
         navigate("/employee/dashboard");
       } else {
         setError(response.error || "Invalid access code");
@@ -55,6 +77,12 @@ function EmployeeLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToEmail = () => {
+    setStep(1);
+    setError("");
+    setMessage("");
   };
 
   return (
@@ -131,16 +159,14 @@ function EmployeeLogin() {
                 </svg>
                 Email Address
               </label>
-              {/* <div className="input-wrapper"> */}
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@company.com"
-                  required
-                  disabled={loading}
-                />
-              {/* </div> */}
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@company.com"
+                required
+                disabled={loading}
+              />
               <small>Enter your work email address</small>
             </div>
 
@@ -219,6 +245,13 @@ function EmployeeLogin() {
           </form>
         ) : (
           <form onSubmit={handleVerifyCode} className="login-form">
+            {/* ✅ Show which email we're verifying */}
+            <div className="form-group">
+              <p className="email-display">
+                Verifying: <strong>{sessionStorage.getItem("loginEmail")}</strong>
+              </p>
+            </div>
+
             <div className="form-group">
               <label>
                 <svg className="input-icon" viewBox="0 0 24 24" fill="none">
@@ -240,18 +273,16 @@ function EmployeeLogin() {
                 </svg>
                 Access Code
               </label>
-              {/* <div className="input-wrapper"> */}
-                <input
-                  type="text"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  maxLength="6"
-                  required
-                  disabled={loading}
-                  className="code-input"
-                />
-              {/* </div> */}
+              <input
+                type="text"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                placeholder="Enter 6-digit code"
+                maxLength="6"
+                required
+                disabled={loading}
+                className="code-input"
+              />
               <small>Check your email for the access code</small>
             </div>
 
@@ -307,7 +338,7 @@ function EmployeeLogin() {
 
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={handleBackToEmail}
                 className="btn-secondary"
                 disabled={loading}
               >

@@ -1,8 +1,6 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
-
-
 /**
  * Generate a random 6-digit access code
  */
@@ -28,15 +26,12 @@ const generateSetupToken = () => {
  * Format phone number to E.164 format
  */
 const formatPhoneNumber = (phoneNumber) => {
-  // Remove all non-digit characters
   let cleaned = phoneNumber.replace(/\D/g, '');
   
-  // If it doesn't start with country code, assume US (+1)
   if (!cleaned.startsWith('1') && cleaned.length === 10) {
     cleaned = '1' + cleaned;
   }
   
-  // Add + prefix
   return '+' + cleaned;
 };
 
@@ -57,24 +52,46 @@ const isValidPhoneNumber = (phoneNumber) => {
 };
 
 /**
- * Create a conversation ID between owner and employee
+ * Create a conversation ID between two users (FIXED VERSION)
+ * 
+ * IMPORTANT: This function MUST produce the same ID regardless of which user ID is passed first
+ * Both users (owner and employee) must get the same conversation ID for real-time messaging to work
+ * 
+ * @param {string} userId1 - First user ID (could be owner or employee)
+ * @param {string} userId2 - Second user ID (could be owner or employee)
+ * @returns {string} - Consistent conversation ID (format: sorted_id1_sorted_id2)
  */
-const createConversationId = (ownerId, employeeId) => {
-  // Sort to ensure consistent ID regardless of order
-  const ids = [ownerId, employeeId].sort();
+const createConversationId = (userId1, userId2) => {
+  const id1 = String(userId1).trim();
+  const id2 = String(userId2).trim();
+  
+  // Ensure phone numbers have + prefix
+  const formatId = (id) => {
+    if (id.includes('emp_')) return id;
+    return id.startsWith('+') ? id : `+${id}`;
+  };
+  
+  const formatted1 = formatId(id1);
+  const formatted2 = formatId(id2);
+  
+  const ids = [formatted1, formatted2].sort();
   return `${ids[0]}_${ids[1]}`;
 };
 
 /**
- * Sanitize user input to prevent injection
+ * Sanitize user input while preserving Vietnamese characters
+ * FIXED: Now supports UTF-8 and Vietnamese diacritics (á, à, ả, ã, ạ, etc.)
  */
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
   
   return input
     .trim()
+    // Only remove potential XSS characters, preserve Vietnamese diacritics
     .replace(/[<>]/g, '') // Remove < and >
-    .substring(0, 500); // Limit length
+    .replace(/javascript:/gi, '') // Remove javascript:
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers like onclick=
+    .substring(0, 1000); // Limit to 1000 characters
 };
 
 /**
@@ -88,7 +105,7 @@ const generateMessageId = () => {
  * Format timestamp to readable format
  */
 const formatTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleString('vi-VN'); // Vietnamese locale
 };
 
 /**
@@ -100,7 +117,7 @@ const isAccessCodeExpired = (createdAt, expiryMs = 600000) => {
 };
 
 /**
- * Hash password using simple algorithm (in production, use bcrypt)
+ * Hash password using bcrypt
  */
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
@@ -110,8 +127,8 @@ const hashPassword = async (password) => {
 /**
  * Verify password
  */
-const verifyPassword = (password, hashedPassword) => {
-  return hashPassword(password) === hashedPassword;
+const verifyPassword = async (password, hashedPassword) => {
+  return await bcrypt.compare(password, hashedPassword);
 };
 
 module.exports = {

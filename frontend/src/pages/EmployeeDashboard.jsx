@@ -120,8 +120,23 @@ function EmployeeDashboard() {
     return <div className="loading-screen">No employee data found</div>;
   }
 
-  const ownerId = tasks.length > 0 ? tasks[0].assignedBy : localStorage.getItem('ownerId') || 'owner';
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+// Lấy owner ID từ task hoặc từ localStorage
+let ownerId = null;
+
+if (tasks.length > 0 && tasks[0].assignedBy) {
+  ownerId = tasks[0].assignedBy;
+} else {
+  // Lấy từ employee data (owner info khi login)
+  const employeeData = employee;
+  ownerId = employeeData?.ownerId || employeeData?.assignedBy;
+}
+
+// Fallback: nếu vẫn không có, log error
+if (!ownerId || ownerId === 'owner') {
+  console.error('❌ Owner ID not found!', { ownerId, tasks });
+  // Có thể set giá trị mặc định hoặc show error cho user
+  ownerId = null;
+}  const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const pendingTasks = tasks.filter(t => t.status !== 'completed').length;
 
   return (

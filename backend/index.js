@@ -7,10 +7,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const { initializeFirebase, getDatabase } = require('./config/firebase');
-// const ownerRoutes = require('./routes/owner.routes.js');
-const employeeRoutes = require('./routes/employee.routes.js');
 const { generateMessageId, createConversationId, sanitizeInput } = require('./utils/helpers');
+const employeeRoutes = require('./routes/employee.routes.js');
 const ownerRoutes = require('./routes/owner.routes.js');
+const chatRoutes = require("./routes/chat.routes.js");
 
 // Initialize Express app
 const app = express();
@@ -32,10 +32,11 @@ try {
   console.error('Failed to initialize Firebase. Please check configuration.');
   process.exit(1);
 }
+
 const URL = process.env.FRONTEND_URL
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true
@@ -45,20 +46,20 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: 'Too many authentication attempts, please try again later.'
 });
 
-// Apply rate limiting to auth routes
-app.use('/api/owner/create-access-code', authLimiter);
-app.use('/api/owner/validate-access-code', authLimiter);
-app.use('/api/employee/login-email', authLimiter);
-app.use('/api/employee/validate-access-code', authLimiter);
+app.use('/api/owner/access-code', authLimiter);
+app.use('/api/owner/access-code/verify', authLimiter);
+app.use('/api/employee/email', authLimiter);
+app.use('/api/employee/access-code/verify-email', authLimiter);
 
 // Routes
 app.use('/api/owner', ownerRoutes);
 app.use('/api/employee', employeeRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -77,78 +78,180 @@ app.get('/', (req, res) => {
     endpoints: {
       owner: '/api/owner',
       employee: '/api/employee',
+      chat: '/api/chat',
       health: '/health'
     }
   });
 });
 
-// Socket.io connection handling for real-time chat
-io.on('connection', (socket) => {
-  console.log('New client connected:', socket.id);
+// ===== SOCKET.IO CONNECTION HANDLING =====
+const onlineUsers = new Map(); // userId -> { socketId, rooms: Set }
 
-  // Join a conversation room
+io.on('connection', (socket) => {
+  console.log('🔌 New client connected:', socket.id);
+
+  // ===== USER ONLINE =====
+  socket.on('user-online', ({ userId }) => {
+    onlineUsers.set(userId, { 
+      socketId: socket.id, 
+      rooms: new Set() 
+    });
+    
+    console.log('🟢 User online:', userId);
+
+    // Broadcast to all
+    io.emit('user-status-changed', {
+      userId,
+      status: 'online'
+    });
+  });
+
+  // ===== JOIN CONVERSATION =====
   socket.on('join-conversation', async ({ userId, userType, otherUserId }) => {
     try {
+      // Validate inputs
+      if (!userId || !otherUserId) {
+        console.error('❌ Invalid join-conversation:', { userId, userType, otherUserId });
+        socket.emit('error', { message: 'Missing userId or otherUserId' });
+        return;
+      }
+
+      // ✅ Create consistent conversation ID
       const conversationId = createConversationId(userId, otherUserId);
+      
+      console.log(`
+📋 JOIN CONVERSATION:
+   User: ${userId} (${userType})
+   Other: ${otherUserId}
+   Room: ${conversationId}
+   Socket: ${socket.id}`);
+      
+      // Join the room
       socket.join(conversationId);
       
-      console.log(`User ${userId} (${userType}) joined conversation: ${conversationId}`);
+      // Track room in user data
+      if (onlineUsers.has(userId)) {
+        onlineUsers.get(userId).rooms.add(conversationId);
+      }
+      
+      // ✅ CRITICAL: Store conversation ID on socket for typing events
+      socket.currentConversationId = conversationId;
+      socket.currentUserId = userId;
+      
+      console.log(`✅ User ${userId} joined room: ${conversationId}`);
+      console.log(`   Active rooms: ${Array.from(socket.rooms).join(', ')}`);
       
       // Load and send previous messages
       const db = getDatabase();
       const messagesRef = db.ref(`messages/${conversationId}`);
-      const snapshot = await messagesRef.orderByChild('timestamp').limitToLast(50).once('value');
+      const snapshot = await messagesRef
+        .orderByChild('timestamp')
+        .limitToLast(50)
+        .once('value');
+      
       const messages = snapshot.val();
       
       if (messages) {
-        socket.emit('load-messages', Object.values(messages));
+        const messageArray = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+        console.log(`📨 Loaded ${messageArray.length} messages for ${conversationId}`);
+        socket.emit('load-messages', messageArray);
+      } else {
+        console.log(`📨 No messages found for ${conversationId}`);
+        socket.emit('load-messages', []);
       }
     } catch (error) {
-      console.error('Error joining conversation:', error);
+      console.error('❌ Error joining conversation:', error);
       socket.emit('error', { message: 'Failed to join conversation' });
     }
   });
 
-  // Send a message
+  // ===== SEND MESSAGE =====
   socket.on('send-message', async ({ senderId, senderType, receiverId, message }) => {
     try {
       if (!message || message.trim() === '') {
+        console.log('⚠️ Empty message ignored');
+        return;
+      }
+
+      if (!senderId || !receiverId) {
+        console.error('❌ Invalid send-message:', { senderId, senderType, receiverId });
         return;
       }
 
       const db = getDatabase();
+      
+      // ✅ Create consistent conversation ID
       const conversationId = createConversationId(senderId, receiverId);
       const messageId = generateMessageId();
+      
+      console.log(`
+📤 SEND MESSAGE:
+   Sender: ${senderId} (${senderType})
+   Receiver: ${receiverId}
+   Room: ${conversationId}
+   Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
       
       const messageData = {
         messageId,
         senderId,
-        senderType, // 'owner' or 'employee'
+        senderType,
         receiverId,
         message: sanitizeInput(message),
         timestamp: Date.now(),
         read: false
       };
 
-      // Save message to database
+      // Save to database
       await db.ref(`messages/${conversationId}/${messageId}`).set(messageData);
+      console.log(`💾 Message saved to DB: ${conversationId}/${messageId}`);
 
-      // Emit message to all users in the conversation
+      // ✅ CRITICAL: Emit to the ROOM (all members)
       io.to(conversationId).emit('new-message', messageData);
-
-      console.log(`Message sent in conversation ${conversationId}`);
+      console.log(`✅ Message emitted to room: ${conversationId}`);
+      
+      // Log room members
+      const room = io.sockets.adapter.rooms.get(conversationId);
+      if (room) {
+        console.log(`   Room members: ${Array.from(room).join(', ')}`);
+      } else {
+        console.warn(`⚠️ Room ${conversationId} has no members!`);
+      }
+      
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
       socket.emit('error', { message: 'Failed to send message' });
     }
   });
 
-  // Mark messages as read
+  // ===== TYPING INDICATOR =====
+  socket.on('typing', ({ userId, isTyping }) => {
+    // ✅ Use stored conversation ID
+    const conversationId = socket.currentConversationId;
+    
+    if (!conversationId) {
+      console.warn('⚠️ Typing event without conversation ID');
+      return;
+    }
+
+    console.log(`⌨️ Typing: ${userId} -> ${conversationId} (${isTyping})`);
+    
+    // Emit to others in the room (not including sender)
+    socket.to(conversationId).emit('user-typing', { 
+      userId, 
+      typing: isTyping 
+    });
+  });
+
+  // ===== MARK MESSAGES AS READ =====
   socket.on('mark-as-read', async ({ conversationId, userId }) => {
     try {
       const db = getDatabase();
       const messagesRef = db.ref(`messages/${conversationId}`);
-      const snapshot = await messagesRef.orderByChild('read').equalTo(false).once('value');
+      const snapshot = await messagesRef
+        .orderByChild('read')
+        .equalTo(false)
+        .once('value');
+      
       const unreadMessages = snapshot.val();
 
       if (unreadMessages) {
@@ -162,27 +265,49 @@ io.on('connection', (socket) => {
         if (Object.keys(updates).length > 0) {
           await messagesRef.update(updates);
           io.to(conversationId).emit('messages-read', { conversationId, userId });
+          console.log(`✅ Marked ${Object.keys(updates).length} messages as read in ${conversationId}`);
         }
       }
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      console.error('❌ Error marking messages as read:', error);
     }
   });
 
-  // Typing indicator
-  socket.on('typing', ({ conversationId, userId, isTyping }) => {
-    socket.to(conversationId).emit('user-typing', { userId, isTyping });
-  });
-
-  // Leave conversation
+  // ===== LEAVE CONVERSATION =====
   socket.on('leave-conversation', ({ conversationId }) => {
     socket.leave(conversationId);
-    console.log(`User left conversation: ${conversationId}`);
+    
+    // Remove from user's rooms
+    if (socket.currentUserId && onlineUsers.has(socket.currentUserId)) {
+      onlineUsers.get(socket.currentUserId).rooms.delete(conversationId);
+    }
+    
+    console.log(`👋 User left room: ${conversationId}`);
   });
 
-  // Disconnect
+  // ===== DISCONNECT =====
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    let disconnectedUserId = null;
+
+    // Find and remove user
+    for (const [userId, userData] of onlineUsers.entries()) {
+      if (userData.socketId === socket.id) {
+        disconnectedUserId = userId;
+        onlineUsers.delete(userId);
+        break;
+      }
+    }
+
+    if (disconnectedUserId) {
+      console.log('🔴 User offline:', disconnectedUserId);
+
+      io.emit('user-status-changed', {
+        userId: disconnectedUserId,
+        status: 'offline'
+      });
+    }
+
+    console.log('🔌 Client disconnected:', socket.id);
   });
 });
 
@@ -215,24 +340,24 @@ server.listen(PORT, () => {
 ║  API Endpoints:                                       ║
 ║  - http://localhost:${PORT}/api/owner                    ║
 ║  - http://localhost:${PORT}/api/employee                 ║
+║  - http://localhost:${PORT}/api/chat                     ║
 ║  - http://localhost:${PORT}/health                       ║
 ║                                                       ║
-║  Socket.io: Connected                                 ║
-║  Firebase: Connected                                  ║
+║  Socket.io: Connected ✅                              ║
+║  Firebase: Connected ✅                               ║
 ╚═══════════════════════════════════════════════════════╝
   `);
-console.log(URL);
-
+  console.log(`Frontend URL: ${URL}\n`);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('❌ Uncaught Exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
 
