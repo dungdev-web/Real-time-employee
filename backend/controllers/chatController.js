@@ -1,8 +1,51 @@
 const { getDatabase } = require("../config/firebase");
 
 /**
+ * Helper function to get user name from database
+ */
+const getUserName = async (userId, db) => {
+  try {
+    // Check if it's an employee (starts with 'emp_')
+    if (userId.startsWith('emp_')) {
+      const employeeSnapshot = await db.ref(`employees/${userId}`).once('value');
+      const employee = employeeSnapshot.val();
+      
+      if (employee && employee.name) {
+        return employee.name;
+      }
+      
+      return 'Employee'; // Fallback
+    } 
+    // Otherwise it's an owner (phone number format)
+    else {
+      const ownerSnapshot = await db.ref(`owners/${userId}`).once('value');
+      const owner = ownerSnapshot.val();
+      
+      if (owner && owner.name) {
+        return owner.name;
+      }
+      
+      // If no name found, try to find owner by phone
+      const ownersSnapshot = await db.ref('owners').once('value');
+      const owners = ownersSnapshot.val() || {};
+      
+      for (const [ownerId, ownerData] of Object.entries(owners)) {
+        if (ownerData.phone === userId || ownerData.email === userId) {
+          return ownerData.name || 'Manager';
+        }
+      }
+      
+      return 'Manager'; // Fallback
+    }
+  } catch (error) {
+    console.error(`   ❌ Error getting name for ${userId}:`, error);
+    return userId.startsWith('emp_') ? 'Employee' : 'Manager';
+  }
+};
+
+/**
  * GET /api/chat/conversations?userId=xxx
- * Lấy danh sách conversation cho sidebar
+ * Lấy danh sách conversation cho sidebar với tên người dùng
  */
 const getConversations = async (req, res) => {
   try {
@@ -23,9 +66,9 @@ const getConversations = async (req, res) => {
 
     console.log("📦 Total conversations in DB:", Object.keys(data).length);
 
-    const conversations = Object.entries(data)
+    // First, get all conversations without names
+    const conversationsWithoutNames = Object.entries(data)
       .filter(([conversationId]) => {
-        // ✅ Check if userId is in the conversation ID
         const isMatch = conversationId.includes(userId);
         console.log(`   Checking ${conversationId}: ${isMatch}`);
         return isMatch;
@@ -39,38 +82,24 @@ const getConversations = async (req, res) => {
         }
 
         const lastMessage = msgList.sort(
-          (a, b) => b.timestamp - a.timestamp
+          (a, b) => b.timestamp - a.timestamp,
         )[0];
 
-        // ✅ CRITICAL FIX: Proper parsing of conversation ID
         console.log(`   📋 Parsing conversation: ${conversationId}`);
-        
-        // Split by underscore
+
         const parts = conversationId.split("_");
-        console.log(`      Parts: [${parts.join(", ")}]`);
-        
         let otherUserId;
-        
-        // ✅ Handle different ID formats
+
         if (parts.length === 2) {
-          // Simple case: "id1_id2"
           otherUserId = parts[0] === userId ? parts[1] : parts[0];
         } else if (parts.length >= 3) {
-          // Employee ID case: "phoneNumber_emp_timestamp_hash"
-          // Need to reconstruct the full employee ID
-          
-          // Check if first part is userId (phone number)
           if (parts[0] === userId) {
-            // User is first, other user is the rest
             otherUserId = parts.slice(1).join("_");
           } else {
-            // User is in the rest, first part is other user
             const possibleEmployeeId = parts.slice(1).join("_");
             if (possibleEmployeeId.includes(userId)) {
-              // userId is the employee ID
               otherUserId = parts[0];
             } else {
-              // userId is first part
               otherUserId = possibleEmployeeId;
             }
           }
@@ -83,21 +112,38 @@ const getConversations = async (req, res) => {
 
         return {
           id: conversationId,
-          otherUserId, // ✅ Full ID
+          otherUserId,
           lastMessage,
         };
       })
       .filter(Boolean)
       .sort((a, b) => b.lastMessage.timestamp - a.lastMessage.timestamp);
 
-    console.log(`✅ Returning ${conversations.length} conversations`);
-    conversations.forEach(conv => {
-      console.log(`   - ${conv.id} (other: ${conv.otherUserId})`);
+    // ✅ Now fetch names for all users
+    console.log(`🔍 Fetching names for ${conversationsWithoutNames.length} conversations...`);
+    
+    const conversationsWithNames = await Promise.all(
+      conversationsWithoutNames.map(async (conv) => {
+        const otherUserName = await getUserName(conv.otherUserId, db);
+        
+        console.log(`   👤 ${conv.otherUserId} → ${otherUserName}`);
+        
+        return {
+          ...conv,
+          otherUserName, // ✅ Added user name
+        };
+      })
+    );
+
+    console.log(`✅ Returning ${conversationsWithNames.length} conversations with names`);
+    conversationsWithNames.forEach((conv) => {
+      console.log(`   - ${conv.id}`);
+      console.log(`     Other: ${conv.otherUserId} (${conv.otherUserName})`);
     });
 
     res.json({
       success: true,
-      conversations,
+      conversations: conversationsWithNames,
     });
   } catch (err) {
     console.error("❌ getConversations error:", err);

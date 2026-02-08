@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ownerAPI } from "../services/api";
-import "../css/OwnerLogin.scss";
+import { employeeAPI } from "../../services/api";
+import "../../css/OwnerLogin.scss";
 
-function OwnerLogin() {
+function EmployeeLogin() {
   const [step, setStep] = useState(1);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,9 +19,13 @@ function OwnerLogin() {
     setLoading(true);
 
     try {
-      const response = await ownerAPI.createAccessCode(phoneNumber);
+      // ✅ Send email to get access code
+      const response = await employeeAPI.loginEmail(email);
       if (response.success) {
-        setMessage("Access code sent to your phone!");
+        // ✅ Save email in sessionStorage (temporary)
+        sessionStorage.setItem("loginEmail", email);
+        
+        setMessage("Access code sent to your email!");
         setStep(2);
       } else {
         setError(response.error || "Failed to send access code");
@@ -39,18 +43,32 @@ function OwnerLogin() {
     setLoading(true);
 
     try {
-      const response = await ownerAPI.validateAccessCode(
-        phoneNumber,
-        accessCode,
-      );
-      if (response.success) {
-        // Save to local storage
-        localStorage.setItem("userType", "owner");
-        localStorage.setItem("phoneNumber", phoneNumber);
-        localStorage.setItem("ownerId", response.ownerId);
+      // ✅ Get email from sessionStorage
+      const loginEmail = sessionStorage.getItem("loginEmail");
+      
+      if (!loginEmail) {
+        setError("Session expired. Please start over.");
+        setStep(1);
+        setLoading(false);
+        return;
+      }
 
-        // Navigate to dashboard
-        navigate("/owner/dashboard");
+      // ✅ Send EMAIL + code (not employeeId!)
+      const response = await employeeAPI.validateAccessCode(loginEmail, accessCode);
+      
+      if (response.success) {
+        // ✅ Save employee data including ownerId
+        localStorage.setItem("userType", "employee");
+        localStorage.setItem("email", loginEmail);
+          localStorage.setItem("ownerId", response.employee.ownerId);
+        localStorage.setItem("employeeId", response.employee.employeeId);
+        localStorage.setItem("employeeData", JSON.stringify(response.employee));
+
+        // ✅ Clear temporary session
+        sessionStorage.removeItem("loginEmail");
+        
+        // Redirect
+        navigate("/employee/dashboard");
       } else {
         setError(response.error || "Invalid access code");
       }
@@ -61,14 +79,23 @@ function OwnerLogin() {
     }
   };
 
+  const handleBackToEmail = () => {
+    setStep(1);
+    setError("");
+    setMessage("");
+  };
+
   return (
     <div className="login-container">
+      {/* Animated background elements */}
       <div className="bg-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
         <div className="shape shape-3"></div>
       </div>
+
       <div className="login-box">
+        {/* Header with icon */}
         <div className="login-header">
           <div className="icon-wrapper">
             <svg
@@ -93,13 +120,15 @@ function OwnerLogin() {
               />
             </svg>
           </div>
-          <h1>Owner Login</h1>
+          <h1>Employee Login</h1>
           <p className="subtitle">Employee Task Management System</p>
         </div>
+
+        {/* Progress indicator */}
         <div className="progress-steps">
           <div className={`step ${step >= 1 ? "active" : ""}`}>
             <div className="step-number">1</div>
-            <span>Phone</span>
+            <span>Email</span>
           </div>
           <div className="step-line"></div>
           <div className={`step ${step >= 2 ? "active" : ""}`}>
@@ -107,39 +136,42 @@ function OwnerLogin() {
             <span>Verify</span>
           </div>
         </div>
+
         {step === 1 ? (
           <form onSubmit={handleSendCode} className="login-form">
             <div className="form-group">
               <label>
-                <svg
-                  className="input-icon"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  fill="currentColor"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
-                  <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2" />
+                <svg className="input-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M22 6L12 13L2 6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
-                Phone Number
+                Email Address
               </label>
-              {/* <div className="input-wrapper"> */}
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+1234567890"
-                  required
-                  disabled={loading}
-                />
-              {/* </div> */}
-              <small>Enter your phone number with country code</small>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@company.com"
+                required
+                disabled={loading}
+              />
+              <small>Enter your work email address</small>
             </div>
 
             {error && (
               <div className="error-message">
-                {" "}
                 <svg viewBox="0 0 24 24" fill="none">
                   <circle
                     cx="12"
@@ -159,9 +191,9 @@ function OwnerLogin() {
                 {error}
               </div>
             )}
+
             {message && (
               <div className="success-message">
-                {" "}
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
                     d="M22 11.08V12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C15.3 2 18.23 3.58 20 6"
@@ -207,12 +239,19 @@ function OwnerLogin() {
                     </svg>
                     Send Access Code
                   </>
-                )}{" "}
+                )}
               </button>
             </div>
           </form>
         ) : (
           <form onSubmit={handleVerifyCode} className="login-form">
+            {/* ✅ Show which email we're verifying */}
+            <div className="form-group">
+              <p className="email-display">
+                Verifying: <strong>{sessionStorage.getItem("loginEmail")}</strong>
+              </p>
+            </div>
+
             <div className="form-group">
               <label>
                 <svg className="input-icon" viewBox="0 0 24 24" fill="none">
@@ -234,23 +273,21 @@ function OwnerLogin() {
                 </svg>
                 Access Code
               </label>
-              <div className="input-wrapper">
-                <input
-                  type="text"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  maxLength="6"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <small>Check your phone for the access code</small>
+              <input
+                type="text"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                placeholder="Enter 6-digit code"
+                maxLength="6"
+                required
+                disabled={loading}
+                className="code-input"
+              />
+              <small>Check your email for the access code</small>
             </div>
 
             {error && (
               <div className="error-message">
-                {" "}
                 <svg viewBox="0 0 24 24" fill="none">
                   <circle
                     cx="12"
@@ -296,11 +333,12 @@ function OwnerLogin() {
                     </svg>
                     Verify Code
                   </>
-                )}{" "}
+                )}
               </button>
+
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={handleBackToEmail}
                 className="btn-secondary"
                 disabled={loading}
               >
@@ -331,7 +369,7 @@ function OwnerLogin() {
             <span>or</span>
           </div>
           <p>
-            Employee? <a href="/employee/login">Login here</a>
+            Manager? <a href="/owner/login">Login here →</a>
           </p>
         </div>
       </div>
@@ -339,4 +377,4 @@ function OwnerLogin() {
   );
 }
 
-export default OwnerLogin;
+export default EmployeeLogin;

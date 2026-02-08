@@ -5,18 +5,20 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import OwnerLogin from "./pages/OwnerLogin";
-import OwnerDashboard from "./pages/OwnerDashboard";
-import EmployeeLogin from "./pages/EmployeeLogin";
-import EmployeeSetup from "./pages/EmployeeSetup";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
-import OwnerMessage from "./pages/OwnerMessage";
-import EmployeeMessage from "./pages/EmployeeMessage";
+import OwnerLogin from "./pages/owner/OwnerLogin";
+import OwnerDashboard from "./pages/owner/OwnerDashboard";
+import OwnerMessage from "./pages/owner/OwnerMessage";
+import OwnerManageEmployee from "./pages/owner/OwnerManageEmployee";
+import OwnerManageTask from "./pages/owner/OwnerManageTask";
+import EmployeeLogin from "./pages/employee/EmployeeLogin";
+import EmployeeSetup from "./pages/employee/EmployeeSetup";
+import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import EmployeeMessage from "./pages/employee/EmployeeMessage";
 import "./App.css";
 import OwnerLayout from "./layout/OwnerLayout";
 import { ChatProvider } from "./context/ChatContext";
 import EmployeeLayout from "./layout/EmployeeLayout";
-
+import EmployeeTask from "./pages/employee/EmployeeTask";
 function App() {
   return (
     <ChatProvider ownerId={localStorage.getItem("ownerId")}>
@@ -33,15 +35,14 @@ function App() {
           <Route path="/owner" element={<OwnerLayout />}>
             <Route path="dashboard" element={<OwnerDashboard />} />
             <Route path="message" element={<OwnerMessage />} />
-            {/* sau này thêm */}
-            {/* <Route path="employee" element={<EmployeePage />} /> */}
-            {/* <Route path="task" element={<TaskPage />} /> */}
+            <Route path="employee" element={<OwnerManageEmployee />} />
+            <Route path="task" element={<OwnerManageTask />} />
           </Route>
 
           {/* Employee */}
           <Route path="/employee" element={<EmployeeLayout />}>
             <Route path="dashboard" element={<EmployeeDashboard />} />
-            {/* <Route path="task" element={<EmployeeTask />} /> */}
+            <Route path="task" element={<EmployeeTask />} />
             <Route path="message" element={<EmployeeMessage />} />  
             
           </Route>

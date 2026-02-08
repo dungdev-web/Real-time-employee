@@ -365,6 +365,77 @@ const updateProfile = async (req, res) => {
 };
 
 /**
+ * GET /api/employee/tasks/
+ * Get all tasks
+ */
+const getAllTasks = async (req, res) => {
+  try {
+    const { ownerId, status, priority } = req.query;
+
+    const db = getDatabase();
+    const employeesRef = db.ref('employees');
+    const snapshot = await employeesRef.once('value');
+    const employees = snapshot.val();
+
+    if (!employees) {
+      return res.json({ 
+        success: true,
+        tasks: [],
+        count: 0
+      });
+    }
+
+    let allTasks = [];
+
+    // Collect tasks from all employees
+    for (const [empId, empData] of Object.entries(employees)) {
+      // Filter by ownerId if provided
+      if (ownerId && empData.ownerId !== ownerId && empData.assignedBy !== ownerId) {
+        continue;
+      }
+
+      if (empData.tasks) {
+        const tasks = Object.values(empData.tasks).map(task => ({
+          ...task,
+          employeeId: empId,
+          employeeName: empData.name,
+          employeeEmail: empData.email,
+          department: empData.department
+        }));
+
+        allTasks = allTasks.concat(tasks);
+      }
+    }
+
+    // Filter by status if provided
+    if (status) {
+      allTasks = allTasks.filter(task => task.status === status);
+    }
+
+    // Filter by priority if provided
+    if (priority) {
+      allTasks = allTasks.filter(task => task.priority === priority);
+    }
+
+    // Sort by createdAt (newest first)
+    allTasks.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.json({ 
+      success: true,
+      tasks: allTasks,
+      count: allTasks.length
+    });
+
+  } catch (error) {
+    console.error('Error in getAllTasks:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to retrieve all tasks' 
+    });
+  }
+};
+
+/**
  * GET /api/employee/tasks/:employeeId
  * Get employee's tasks
  */
@@ -397,9 +468,124 @@ const getTasks = async (req, res) => {
     });
   }
 };
-
 /**
- * PUT /api/employee/task/:taskId/complete
+ * POST /api/employee/tasks/
+ * POST employee's tasks
+ */
+ const createTask = async (req, res) => {
+  try {
+    const { 
+      employeeId, 
+      title, 
+      description, 
+      priority, 
+      dueDate,
+      status 
+    } = req.body;
+
+    // ✅ Validation
+    if (!employeeId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Employee ID is required' 
+      });
+    }
+
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Task title is required' 
+      });
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Task title must be less than 200 characters' 
+      });
+    }
+
+    // ✅ Validate priority
+    const validPriorities = ['low', 'medium', 'high'];
+    const taskPriority = priority && validPriorities.includes(priority) ? priority : 'medium';
+
+    // ✅ Validate status
+    const validStatuses = ['pending', 'in-progress', 'completed'];
+    const taskStatus = status && validStatuses.includes(status) ? status : 'pending';
+
+    // ✅ Validate due date if provided
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      if (isNaN(dueDateObj.getTime())) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid due date format (use ISO format: YYYY-MM-DD)' 
+        });
+      }
+    }
+
+    const db = getDatabase();
+
+    // ✅ Check if employee exists
+    const employeeRef = db.ref(`employees/${employeeId}`);
+    const empSnapshot = await employeeRef.once('value');
+    
+    if (!empSnapshot.exists()) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Employee not found' 
+      });
+    }
+
+    // ✅ Generate unique task ID
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // ✅ Prepare task object
+    const taskData = {
+      taskId: taskId,
+      title: sanitizeInput(title),
+      description: description ? sanitizeInput(description) : '',
+      priority: taskPriority,
+      status: taskStatus,
+      dueDate: dueDate || null,
+      createdAt: Date.now(),
+      completedAt: null
+    };
+
+    // ✅ Save task to database
+    await db.ref(`employees/${employeeId}/tasks/${taskId}`).set(taskData);
+
+    // ✅ Try to send notification email
+    try {
+      const employee = empSnapshot.val();
+      if (employee.email) {
+        await emailService.sendTaskAssignmentEmail(
+          employee.email,
+          employee.name,
+          taskData
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send task notification email:', emailError.message);
+      // Continue anyway - task is saved
+    }
+
+    res.status(201).json({ 
+      success: true,
+      task: taskData,
+      message: 'Task created successfully and assigned to employee'
+    });
+
+  } catch (error) {
+    console.error('Error in createTask:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create task' 
+    });
+  }
+};
+
+ /* PUT /api/employee/task/:taskId/complete
  * Mark task as complete
  */
 const completeTask = async (req, res) => {
@@ -453,5 +639,7 @@ module.exports = {
   getProfile,
   updateProfile,
   getTasks,
-  completeTask
+  createTask,
+  completeTask,
+  getAllTasks
 };

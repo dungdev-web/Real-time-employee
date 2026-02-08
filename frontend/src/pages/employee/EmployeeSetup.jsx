@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { employeeAPI } from '../services/api';
-import '../css/OwnerLogin.scss';
+import { employeeAPI } from '../../services/api';
+import '../../css/OwnerLogin.scss';
 
 function EmployeeSetup() {
   const [searchParams] = useSearchParams();

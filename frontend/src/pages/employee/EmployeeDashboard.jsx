@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { employeeAPI } from '../services/api';
-import Chat from '../components/Chat';
-import '../css/EmployeeDashboard.scss';
+import { employeeAPI } from '../../services/api';
+import Chat from '../../components/Chat';
+import '../../css/EmployeeDashboard.scss';
 
 function EmployeeDashboard() {
   const [employee, setEmployee] = useState(null);

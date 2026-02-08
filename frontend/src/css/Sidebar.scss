@@ -1,9 +1,11 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
 .message-sidebar {
- position: fixed;        // ✅ QUAN TRỌNG
+ position: sticky;        // ✅ QUAN TRỌNG
   top: 0;
   left: 0;
   width: 400px;
-  height: 100vh;
+  height: 100px;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;
@@ -58,7 +60,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    // overflow: hidden;
 
     .section-header {
       padding: 20px 30px;
@@ -80,17 +82,15 @@
 
         .icon-btn {
           position: relative;
-          width: 36px;
-          height: 36px;
+          // width: 36px;
+          // height: 36px;
           border: none;
           background: #f3f4f6;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+         @include flex-center;
           cursor: pointer;
           transition: all 0.2s ease;
           color: #6b7280;
+          padding: 10px !important;
 
           &:hover {
             background: #e5e7eb;
@@ -227,6 +227,6 @@
 // Responsive
 @media (max-width: 768px) {
   .message-sidebar {
-    width: 100%;
+    width: 20px !important;
   }
 }

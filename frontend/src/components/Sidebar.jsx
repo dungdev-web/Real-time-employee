@@ -50,6 +50,7 @@ function Sidebar({ menuItems, messagePath }) {
           </div>
         ))}
       </div>
+      
 
       {/* CHAT SIDEBAR */}
       {location.pathname === messagePath && (
@@ -87,7 +88,7 @@ function Sidebar({ menuItems, messagePath }) {
                   <div className="conversation-info">
                     <div className="conversation-header">
                       <span className="conversation-name">
-                        {conv.otherUserId || conv.id}
+                        {conv.otherUserName}
                       </span>
                       {conv.lastMessage && (
                         <span className="conversation-time">

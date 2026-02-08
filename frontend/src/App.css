@@ -29,8 +29,8 @@ a {
 }
 
 .owner-content {
-  margin-left: 400px;  
-  width: calc(100% - 400px);
+  /* margin-left: 400px;   */
+  width: 100%;
   height: 100vh;
   /* overflow: hidden; */
 }

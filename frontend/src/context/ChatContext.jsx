@@ -7,7 +7,6 @@ const ChatContext = createContext();
 export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [employeesMap, setEmployeesMap] = useState(new Map()); // Store employee details
   
   const userType = localStorage.getItem("userType");
   const ownerId = localStorage.getItem("ownerId");
@@ -15,9 +14,9 @@ export const ChatProvider = ({ children }) => {
 
   const userId = userType === "owner" ? ownerId : employeeId;
 
-  console.log("🔍 ChatProvider initialized:", { userType, userId, ownerId, employeeId });
+  console.log("🔍 ChatProvider initialized:", { userType, userId });
 
-  // ✅ LOAD CONVERSATIONS
+  // ✅ LOAD CONVERSATIONS WITH NAMES
   useEffect(() => {
     const socket = socketService.connect();
 
@@ -28,34 +27,16 @@ export const ChatProvider = ({ children }) => {
         const res = await chatAPI.getConversations(userId);
         console.log("📨 Conversations response:", res);
         
+        // ✅ Conversations now include otherUserName from backend
         const convs = res.conversations || [];
         
-        // ✅ For owner: Load employee details to get names
-        if (userType === "owner") {
-          const employeeDetailsPromises = convs.map(async (conv) => {
-            try {
-              // Assuming you have an API to get employee by ID
-              // If not, you'll need to add this endpoint
-              const empId = conv.otherUserId;
-              
-              // Store employee ID for now (you can enhance this to fetch names)
-              return { id: empId, name: empId }; // TODO: Replace with actual API call
-            } catch (err) {
-              console.error("Failed to load employee:", err);
-              return { id: conv.otherUserId, name: conv.otherUserId };
-            }
-          });
-          
-          const employeeDetails = await Promise.all(employeeDetailsPromises);
-          const empMap = new Map();
-          employeeDetails.forEach(emp => {
-            empMap.set(emp.id, emp.name);
-          });
-          setEmployeesMap(empMap);
-        }
+        console.log("✅ Loaded conversations with names:");
+        convs.forEach(conv => {
+          console.log(`   - ${conv.id}`);
+          console.log(`     ${conv.otherUserId} (${conv.otherUserName})`);
+        });
         
         setConversations(convs);
-        console.log("✅ Loaded conversations:", convs.length);
       } catch (err) {
         console.error("❌ Load conversations error:", err);
       }
@@ -83,20 +64,16 @@ export const ChatProvider = ({ children }) => {
     return () => {
       socketService.removeListener("new-message");
     };
-  }, [userId, userType]);
+  }, [userId]);
 
   // ✅ SELECT CONVERSATION
   const selectConversation = (conv) => {
     console.log("🎯 Selecting conversation:", conv);
+    console.log("   Other user:", conv.otherUserId);
+    console.log("   Other name:", conv.otherUserName);
     
-    // ✅ Add employee name if available
-    const enrichedConv = {
-      ...conv,
-      otherUserName: employeesMap.get(conv.otherUserId) || conv.otherUserId
-    };
-    
-    setSelectedConversation(enrichedConv);
-    localStorage.setItem("selectedConversation", JSON.stringify(enrichedConv));
+    setSelectedConversation(conv);
+    localStorage.setItem("selectedConversation", JSON.stringify(conv));
   };
 
   // ✅ Restore selected conversation on mount

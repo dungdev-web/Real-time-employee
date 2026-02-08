@@ -1,7 +1,7 @@
 import React from "react";
-import { useChat } from "../context/ChatContext";
-import Chat from "../components/Chat";
-import "../css/MessagesPage.scss";
+import { useChat } from "../../context/ChatContext";
+import Chat from "../../components/Chat";
+import "../../css/MessagesPage.scss";
 
 function EmployeeMessage() {
   const { selectedConversation } = useChat();
@@ -10,7 +10,7 @@ function EmployeeMessage() {
   
   // ✅ FIX: Get ownerId from selectedConversation
   const ownerId = selectedConversation?.otherUserId;
-  const ownerName = selectedConversation?.otherUserName || selectedConversation?.otherUserId || "Manager";
+  const ownerName =  "Manager";
 
   console.log("🔍 EmployeeMessage Debug:", {
     employeeId,
