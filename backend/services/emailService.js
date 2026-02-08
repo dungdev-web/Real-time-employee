@@ -174,6 +174,144 @@ class EmailService {
 
     return await this.sendEmail(email, subject, htmlContent, textContent);
   }
+  async sendTaskAssignmentEmail(employeeEmail, employeeName, taskData) {
+    const subject = `New Task Assigned: ${taskData.title}`;
+    
+    // Format due date if exists
+    const dueDateText = taskData.dueDate 
+      ? new Date(taskData.dueDate).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : 'No due date';
+
+    // Priority colors
+    const priorityColors = {
+      low: '#4CAF50',
+      medium: '#FF9800',
+      high: '#f44336'
+    };
+
+    const priorityColor = priorityColors[taskData.priority] || '#2196F3';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+          .task-box { background-color: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ${priorityColor}; }
+          .task-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
+          .task-detail { margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+          .task-detail:last-child { border-bottom: none; }
+          .label { font-weight: 600; color: #666; display: inline-block; width: 100px; }
+          .value { color: #333; }
+          .priority-badge { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            background-color: ${priorityColor};
+            color: white;
+          }
+          .button { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+            padding: 12px 30px; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin: 20px 0; 
+          }
+          .footer { text-align: center; margin-top: 20px; color: #777; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📋 New Task Assigned</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${employeeName},</h2>
+            <p>You have been assigned a new task. Please review the details below:</p>
+            
+            <div class="task-box">
+              <div class="task-title">${taskData.title}</div>
+              
+              <div class="task-detail">
+                <span class="label">Priority:</span>
+                <span class="priority-badge">${taskData.priority}</span>
+              </div>
+              
+              <div class="task-detail">
+                <span class="label">Status:</span>
+                <span class="value">${taskData.status}</span>
+              </div>
+              
+              <div class="task-detail">
+                <span class="label">Due Date:</span>
+                <span class="value">${dueDateText}</span>
+              </div>
+              
+              ${taskData.description ? `
+              <div class="task-detail">
+                <span class="label">Description:</span>
+                <div style="margin-top: 8px; color: #555; line-height: 1.6;">
+                  ${taskData.description}
+                </div>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/employee/dashboard" class="button">
+                View in Dashboard
+              </a>
+            </div>
+            
+            <p style="margin-top: 20px;">
+              Please log in to your dashboard to view more details and update the task status.
+            </p>
+            
+            <p>Best regards,<br>Your Manager</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const textContent = `
+      New Task Assigned
+      
+      Hello ${employeeName},
+      
+      You have been assigned a new task:
+      
+      Title: ${taskData.title}
+      Priority: ${taskData.priority.toUpperCase()}
+      Status: ${taskData.status}
+      Due Date: ${dueDateText}
+      ${taskData.description ? `\nDescription:\n${taskData.description}` : ''}
+      
+      Please log in to your dashboard to view more details and update the task status:
+      ${process.env.FRONTEND_URL || 'http://localhost:3000'}/employee/dashboard
+      
+      Best regards,
+      Your Manager
+    `;
+
+    return await this.sendEmail(employeeEmail, subject, htmlContent, textContent);
+  }
+
 }
 
 module.exports = new EmailService();

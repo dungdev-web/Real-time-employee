@@ -28,10 +28,10 @@ const initializeFirebase = () => {
     });
 
     db = admin.database();
-    console.log('✅ Firebase initialized successfully');
+    console.log('Firebase initialized successfully');
     return db;
   } catch (error) {
-    console.error('❌ Error initializing Firebase:', error.message);
+    console.error('Error initializing Firebase:', error.message);
     throw error;
   }
 };

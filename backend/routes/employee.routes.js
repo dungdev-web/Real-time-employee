@@ -7,7 +7,10 @@ const {
   getProfile,
   updateProfile,
   getTasks,
+  getAllTasks,
+  createTask,
   completeTask
+
 } = require('../controllers/employeeController');
 
 // Authentication routes
@@ -24,6 +27,8 @@ router.get('/profile/:employeeId', getProfile);
 router.put('/profile', updateProfile);
 
 // Task routes
+router.post('/tasks', createTask);
+router.get('/tasks',getAllTasks)
 router.get('/tasks/:employeeId', getTasks);
 router.put('/task/:taskId/complete', completeTask);
 

@@ -1,9 +1,9 @@
 // ===== ADD THIS TO OwnerMessage.jsx =====
 
 import React, { useEffect } from "react";
-import { useChat } from "../context/ChatContext";
-import Chat from "../components/Chat";
-import "../css/MessagesPage.scss";
+import { useChat } from "../../context/ChatContext";
+import Chat from "../../components/Chat";
+import "../../css/MessagesPage.scss";
 
 function OwnerMessage() {
   const { selectedConversation } = useChat();

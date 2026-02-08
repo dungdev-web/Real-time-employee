@@ -88,7 +88,7 @@ app.get('/', (req, res) => {
 const onlineUsers = new Map(); // userId -> { socketId, rooms: Set }
 
 io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
+  // console.log('🔌 New client connected:', socket.id);
 
   // ===== USER ONLINE =====
   socket.on('user-online', ({ userId }) => {
@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
       rooms: new Set() 
     });
     
-    console.log('🟢 User online:', userId);
+    // console.log('🟢 User online:', userId);
 
     // Broadcast to all
     io.emit('user-status-changed', {
@@ -119,12 +119,12 @@ io.on('connection', (socket) => {
       // ✅ Create consistent conversation ID
       const conversationId = createConversationId(userId, otherUserId);
       
-      console.log(`
-📋 JOIN CONVERSATION:
-   User: ${userId} (${userType})
-   Other: ${otherUserId}
-   Room: ${conversationId}
-   Socket: ${socket.id}`);
+//       console.log(`
+// 📋 JOIN CONVERSATION:
+//    User: ${userId} (${userType})
+//    Other: ${otherUserId}
+//    Room: ${conversationId}
+//    Socket: ${socket.id}`);
       
       // Join the room
       socket.join(conversationId);
@@ -138,8 +138,8 @@ io.on('connection', (socket) => {
       socket.currentConversationId = conversationId;
       socket.currentUserId = userId;
       
-      console.log(`✅ User ${userId} joined room: ${conversationId}`);
-      console.log(`   Active rooms: ${Array.from(socket.rooms).join(', ')}`);
+      // console.log(`✅ User ${userId} joined room: ${conversationId}`);
+      // console.log(`   Active rooms: ${Array.from(socket.rooms).join(', ')}`);
       
       // Load and send previous messages
       const db = getDatabase();
@@ -153,10 +153,10 @@ io.on('connection', (socket) => {
       
       if (messages) {
         const messageArray = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
-        console.log(`📨 Loaded ${messageArray.length} messages for ${conversationId}`);
+        // console.log(`📨 Loaded ${messageArray.length} messages for ${conversationId}`);
         socket.emit('load-messages', messageArray);
       } else {
-        console.log(`📨 No messages found for ${conversationId}`);
+        // console.log(`📨 No messages found for ${conversationId}`);
         socket.emit('load-messages', []);
       }
     } catch (error) {
@@ -169,12 +169,12 @@ io.on('connection', (socket) => {
   socket.on('send-message', async ({ senderId, senderType, receiverId, message }) => {
     try {
       if (!message || message.trim() === '') {
-        console.log('⚠️ Empty message ignored');
+        // console.log('⚠️ Empty message ignored');
         return;
       }
 
       if (!senderId || !receiverId) {
-        console.error('❌ Invalid send-message:', { senderId, senderType, receiverId });
+        // console.error('❌ Invalid send-message:', { senderId, senderType, receiverId });
         return;
       }
 
@@ -184,12 +184,12 @@ io.on('connection', (socket) => {
       const conversationId = createConversationId(senderId, receiverId);
       const messageId = generateMessageId();
       
-      console.log(`
-📤 SEND MESSAGE:
-   Sender: ${senderId} (${senderType})
-   Receiver: ${receiverId}
-   Room: ${conversationId}
-   Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
+//       console.log(`
+// 📤 SEND MESSAGE:
+//    Sender: ${senderId} (${senderType})
+//    Receiver: ${receiverId}
+//    Room: ${conversationId}
+//    Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
       
       const messageData = {
         messageId,
@@ -203,16 +203,16 @@ io.on('connection', (socket) => {
 
       // Save to database
       await db.ref(`messages/${conversationId}/${messageId}`).set(messageData);
-      console.log(`💾 Message saved to DB: ${conversationId}/${messageId}`);
+      // console.log(`💾 Message saved to DB: ${conversationId}/${messageId}`);
 
       // ✅ CRITICAL: Emit to the ROOM (all members)
       io.to(conversationId).emit('new-message', messageData);
-      console.log(`✅ Message emitted to room: ${conversationId}`);
+      // console.log(`✅ Message emitted to room: ${conversationId}`);
       
       // Log room members
       const room = io.sockets.adapter.rooms.get(conversationId);
       if (room) {
-        console.log(`   Room members: ${Array.from(room).join(', ')}`);
+        // console.log(`   Room members: ${Array.from(room).join(', ')}`);
       } else {
         console.warn(`⚠️ Room ${conversationId} has no members!`);
       }
@@ -233,7 +233,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    console.log(`⌨️ Typing: ${userId} -> ${conversationId} (${isTyping})`);
+    // console.log(`⌨️ Typing: ${userId} -> ${conversationId} (${isTyping})`);
     
     // Emit to others in the room (not including sender)
     socket.to(conversationId).emit('user-typing', { 
@@ -265,7 +265,7 @@ io.on('connection', (socket) => {
         if (Object.keys(updates).length > 0) {
           await messagesRef.update(updates);
           io.to(conversationId).emit('messages-read', { conversationId, userId });
-          console.log(`✅ Marked ${Object.keys(updates).length} messages as read in ${conversationId}`);
+          // console.log(`✅ Marked ${Object.keys(updates).length} messages as read in ${conversationId}`);
         }
       }
     } catch (error) {
@@ -282,7 +282,7 @@ io.on('connection', (socket) => {
       onlineUsers.get(socket.currentUserId).rooms.delete(conversationId);
     }
     
-    console.log(`👋 User left room: ${conversationId}`);
+    // console.log(`👋 User left room: ${conversationId}`);
   });
 
   // ===== DISCONNECT =====
@@ -299,7 +299,7 @@ io.on('connection', (socket) => {
     }
 
     if (disconnectedUserId) {
-      console.log('🔴 User offline:', disconnectedUserId);
+      // console.log('🔴 User offline:', disconnectedUserId);
 
       io.emit('user-status-changed', {
         userId: disconnectedUserId,
@@ -307,7 +307,7 @@ io.on('connection', (socket) => {
       });
     }
 
-    console.log('🔌 Client disconnected:', socket.id);
+    // console.log('🔌 Client disconnected:', socket.id);
   });
 });
 
@@ -347,7 +347,7 @@ server.listen(PORT, () => {
 ║  Firebase: Connected ✅                               ║
 ╚═══════════════════════════════════════════════════════╝
   `);
-  console.log(`Frontend URL: ${URL}\n`);
+  // console.log(`Frontend URL: ${URL}\n`);
 });
 
 // Handle uncaught exceptions

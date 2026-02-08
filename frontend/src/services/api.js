@@ -101,7 +101,15 @@ export const employeeAPI = {
     const response = await api.get(`/api/employee/tasks/${employeeId}`);
     return response.data;
   },
-
+   getAlllTasks: async () => {
+    const response = await api.get(`/api/employee/tasks`);
+    return response.data;
+  },
+  // Pót tasks
+  createTask: async(employeeData) =>{
+    const respon = await api.post(`/api/employee/tasks`,employeeData);
+    return respon.data;
+  },
   // Complete task
   completeTask: async (employeeId, taskId) => {
     const response = await api.put(`/api/employee/task/${taskId}/complete`, {

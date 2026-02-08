@@ -57,14 +57,14 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
 
     const handleConnect = () => {
       setConnected(true);
-      console.log("✅ Chat connected:", socket.id);
+      // console.log("✅ Chat connected:", socket.id);
       socket.emit("user-online", { userId: currentUserId });
     };
 
     const handleDisconnect = () => {
       setConnected(false);
       hasJoinedRoom.current = false;
-      console.log("❌ Chat disconnected");
+      // console.log("❌ Chat disconnected");
     };
 
     socket.on("connect", handleConnect);
@@ -88,7 +88,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
       return;
     }
 
-    console.log("🔥 Loading conversation:", conversationId);
+    // console.log("🔥 Loading conversation:", conversationId);
 
     // ✅ CRITICAL: JOIN SOCKET ROOM FIRST
     const joinPayload = {
@@ -97,14 +97,14 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
       otherUserId: otherUserId
     };
     
-    console.log("📡 Joining room with payload:", joinPayload);
+    // console.log("📡 Joining room with payload:", joinPayload);
     socketService.joinConversation(joinPayload);
     hasJoinedRoom.current = true;
 
     // Load messages from API
     chatAPI.getMessages(conversationId)
       .then((res) => {
-        console.log("📨 Loaded messages from API:", res.messages?.length || 0);
+        console.log("Loaded messages from API:", res.messages?.length || 0);
         setMessages(res.messages || []);
         scrollToBottom();
       })
@@ -118,7 +118,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
       if (hasJoinedRoom.current) {
         socketService.leaveConversation(conversationId);
         hasJoinedRoom.current = false;
-        console.log("👋 Left room:", conversationId);
+        // console.log("👋 Left room:", conversationId);
       }
     };
   }, [conversationId, currentUserId, currentUserType, otherUserId]);
@@ -129,17 +129,17 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
 
     // ✅ NEW MESSAGE HANDLER
     const handleNewMessage = (msg) => {
-      console.log("📩 New message received:", msg);
+      // console.log("📩 New message received:", msg);
       
       // Avoid duplicates
       setMessages((prev) => {
         const exists = prev.find(m => m.messageId === msg.messageId);
         if (exists) {
-          console.log("⚠️ Duplicate message, ignoring");
+          // console.log("⚠️ Duplicate message, ignoring");
           return prev;
         }
         
-        console.log("✅ Adding new message to state");
+        // console.log("✅ Adding new message to state");
         const updated = [...prev, msg];
         
         // Auto-scroll to bottom
@@ -151,7 +151,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
 
     // ✅ TYPING HANDLER
     const handleUserTyping = (data) => {
-      console.log("⌨️ Typing indicator:", data);
+      // console.log("⌨️ Typing indicator:", data);
       if (String(data.userId) === String(otherUserId)) {
         setIsTyping(data.typing);
       }
@@ -159,7 +159,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
 
     // ✅ USER STATUS HANDLER
     const handleUserStatus = (data) => {
-      console.log("👤 User status:", data);
+      // console.log("👤 User status:", data);
       if (String(data.userId) === String(otherUserId)) {
         setOtherUserOnline(data.status === 'online');
       }
@@ -168,7 +168,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
     // ✅ LOAD MESSAGES HANDLER (from socket)
     const handleLoadMessages = (data) => {
       if (data && data.length > 0) {
-        console.log("📨 Socket loaded messages:", data.length);
+        // console.log("📨 Socket loaded messages:", data.length);
         setMessages(data);
         scrollToBottom();
       }
@@ -180,7 +180,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
     socketService.registerListener("user-status-changed", handleUserStatus);
     socketService.registerListener("load-messages", handleLoadMessages);
 
-    console.log("🎧 Socket listeners registered for conversation:", conversationId);
+    // console.log("🎧 Socket listeners registered for conversation:", conversationId);
 
     // Cleanup listeners when conversation changes
     return () => {
@@ -188,7 +188,7 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
       socketService.removeListener("user-typing");
       socketService.removeListener("user-status-changed");
       socketService.removeListener("load-messages");
-      console.log("🔇 Socket listeners removed");
+      // console.log("🔇 Socket listeners removed");
     };
   }, [conversationId, otherUserId]);
 
@@ -197,12 +197,12 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
     e.preventDefault();
     if (!newMessage.trim() || !connected) return;
 
-    console.log("📤 Sending message:", {
-      senderId: currentUserId,
-      senderType: currentUserType,
-      receiverId: otherUserId,
-      message: newMessage.trim()
-    });
+    // console.log("📤 Sending message:", {
+    //   senderId: currentUserId,
+    //   senderType: currentUserType,
+    //   receiverId: otherUserId,
+    //   message: newMessage.trim()
+    // });
 
     socketService.sendMessage(
       currentUserId,
@@ -240,13 +240,19 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
       <div className="chat-header-bar">
         <div className="header-left">
           <div className="header-info">
-            <h3>{otherUserName || 'Unknown User'}</h3>
+            <h3>{otherUserName}</h3>
             <p className={`status ${otherUserOnline ? "online" : "offline"}`}>
               <span className="status-dot"></span>
               {otherUserOnline ? "Online" : "Offline"}
             </p>
           </div>
         </div>
+           <button onClick={() => window.history.back()} className="back-button">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back
+        </button>
       </div>
 
       {/* MESSAGES */}
