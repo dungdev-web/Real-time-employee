@@ -7,7 +7,7 @@ A full-stack real-time employee task management application built with React, Ex
 ## Technology Stack
 
 ### Frontend
-- **React 18.2.0** - UI library
+- **React 19.2.0** - UI library
 - **React Router 6.11.0** - Client-side routing
 - **Axios 1.4.0** - HTTP client
 - **Socket.io Client 4.6.1** - Real-time communication
