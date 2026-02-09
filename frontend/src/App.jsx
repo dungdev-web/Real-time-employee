@@ -30,7 +30,7 @@ function App() {
           {/* Login riêng */}
           <Route path="/owner/login" element={<OwnerLogin />} />
           <Route path="/employee/login" element={<EmployeeLogin />} />
-
+          <Route path="/employee/setup" element={<EmployeeSetup />} />
           {/* OWNER dùng chung sidebar */}
           <Route path="/owner" element={<OwnerLayout />}>
             <Route path="dashboard" element={<OwnerDashboard />} />
@@ -43,8 +43,7 @@ function App() {
           <Route path="/employee" element={<EmployeeLayout />}>
             <Route path="dashboard" element={<EmployeeDashboard />} />
             <Route path="task" element={<EmployeeTask />} />
-            <Route path="message" element={<EmployeeMessage />} />  
-            
+            <Route path="message" element={<EmployeeMessage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

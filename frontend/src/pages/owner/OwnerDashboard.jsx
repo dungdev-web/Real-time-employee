@@ -7,8 +7,6 @@ function OwnerDashboard() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [ownerId, setOwnerId] = useState("");
@@ -68,12 +66,11 @@ function OwnerDashboard() {
       setError("Owner ID not found. Please refresh the page.");
       return;
     }
-
+    setLoading(true);
     try {
-      // ✅ FIXED: Pass ownerId to API
       const response = await ownerAPI.createEmployee({
         ...formData,
-        ownerId: ownerId, // ← ADD THIS!
+        ownerId: ownerId,
       });
 
       if (response.success) {
@@ -90,6 +87,8 @@ function OwnerDashboard() {
       }
     } catch (err) {
       setError(err.response?.data?.error || "Failed to add employee");
+    } finally {
+      setLoading(false); 
     }
   };
 
@@ -124,7 +123,7 @@ function OwnerDashboard() {
       <div className="loading-screen">
         <div className="loader">
           <div className="loader-spinner"></div>
-          <p>Loading dashboard...</p>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -141,6 +140,9 @@ function OwnerDashboard() {
         <div className="bg-shape shape-2"></div>
         <div className="bg-shape shape-3"></div>
       </div>
+      {/* <button type="submit" disabled={loading}>
+        {loading ? "Adding employee..." : "Add Employee"}
+      </button> */}
 
       {/* Header */}
       <header className="dashboard-header">
@@ -756,7 +758,7 @@ function OwnerDashboard() {
                     </div>
                     <div className="employee-info">
                       <div className="flex">
-                      <h3>{employee.name}</h3>
+                        <h3>{employee.name}</h3>
 
                         <span
                           className={`status-badge ${employee.accountSetup ? "active" : "pending"}`}
