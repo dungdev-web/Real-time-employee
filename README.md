@@ -1,4 +1,4 @@
-# Employee Task Management System - Technical Documentation
+# Employee Task Management System
 
 ## Project Overview
 
