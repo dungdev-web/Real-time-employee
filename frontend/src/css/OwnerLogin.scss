@@ -3,7 +3,8 @@
 
 /* ===== KEYFRAME ANIMATIONS ===== */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   33% {
@@ -26,21 +27,26 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
-    box-shadow: 
+  0%,
+  100% {
+    box-shadow:
       0 8px 24px rgba(102, 126, 234, 0.3),
       0 0 0 4px rgba(102, 126, 234, 0.1);
   }
   50% {
-    box-shadow: 
+    box-shadow:
       0 8px 32px rgba(102, 126, 234, 0.4),
       0 0 0 8px rgba(102, 126, 234, 0.15);
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideDown {
@@ -55,35 +61,31 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* ===== CONTAINER WITH ANIMATED BACKGROUND ===== */
 .login-container {
   @include m.flex-center;
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    #667eea 0%,
-    #764ba2 50%,
-    #f093fb 100%
-  );
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
   position: relative;
   overflow: hidden;
-  
+
   .bg-shapes {
     position: absolute;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    
+
     .shape {
       position: absolute;
       border-radius: v.$radius-full;
       filter: blur(80px);
       opacity: 0.3;
       animation: float 20s infinite ease-in-out;
-      
+
       &.shape-1 {
         width: 500px;
         height: 500px;
@@ -92,7 +94,7 @@
         left: -250px;
         animation-delay: 0s;
       }
-      
+
       &.shape-2 {
         width: 400px;
         height: 400px;
@@ -101,7 +103,7 @@
         right: -200px;
         animation-delay: 7s;
       }
-      
+
       &.shape-3 {
         width: 350px;
         height: 350px;
@@ -121,8 +123,8 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 48px;
-  border-radius: v.$radius-lg ; // 24px
-  box-shadow: 
+  border-radius: v.$radius-lg; // 24px
+  box-shadow:
     v.$shadow-soft,
     0 0 0 1px rgba(255, 255, 255, 0.2) inset;
   max-width: 460px;
@@ -133,7 +135,7 @@
   transition: all v.$transition-smooth;
 
   &:hover {
-    box-shadow: 
+    box-shadow:
       v.$shadow-hover,
       0 0 0 1px rgba(255, 255, 255, 0.3) inset;
     transform: translateY(-4px);
@@ -144,18 +146,18 @@
 .login-header {
   text-align: center;
   margin-bottom: 32px;
-  
+
   .icon-wrapper {
     display: inline-flex;
     padding: 20px;
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: v.$radius-full;
     margin-bottom: 20px;
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(102, 126, 234, 0.3),
       0 0 0 4px rgba(102, 126, 234, 0.1);
     animation: pulse 2s infinite;
-    
+
     .login-icon {
       width: 36px;
       height: 36px;
@@ -163,19 +165,17 @@
     }
   }
   h1 {
-  text-align: center;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
 }
-}
-
-
 
 .subtitle {
   text-align: center;
@@ -192,14 +192,14 @@
   justify-content: space-between;
   margin-bottom: 32px;
   // padding: 0 20px;
-  
+
   .step {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     transition: all v.$transition-normal;
-    
+
     .step-number {
       width: 40px;
       height: 40px;
@@ -214,14 +214,14 @@
       border: 2px solid v.$border-color;
       transition: all v.$transition-smooth;
     }
-    
+
     span {
       font-size: 13px;
       font-weight: 600;
       color: v.$text-muted;
       transition: color v.$transition-normal;
     }
-    
+
     &.active {
       .step-number {
         background: linear-gradient(135deg, #667eea, #764ba2);
@@ -230,22 +230,22 @@
         box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
         transform: scale(1.1);
       }
-      
+
       span {
         color: #667eea;
       }
     }
   }
-  
+
   .step-line {
     flex: 1;
     height: 2px;
     background: linear-gradient(to right, v.$border-color, v.$border-color);
     margin: 0 12px;
     position: relative;
-    
+
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 0;
@@ -273,7 +273,7 @@
     font-weight: 600;
     color: v.$text-color;
     margin-bottom: 10px;
-    
+
     .input-icon {
       width: 18px;
       height: 18px;
@@ -298,21 +298,21 @@
     &:focus {
       border-color: #667eea;
       background: white;
-      box-shadow: 
+      box-shadow:
         0 0 0 4px rgba(102, 126, 234, 0.1),
         0 4px 12px rgba(0, 0, 0, 0.05);
       outline: none;
       transform: translateY(-2px);
     }
-    
+
     &.code-input {
       text-align: center;
       font-size: 24px;
       font-weight: 700;
       letter-spacing: 8px;
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
     }
-    
+
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -329,7 +329,7 @@
 }
 
 /* ===== BUTTON STYLES ===== */
-.button-container{
+.button-container {
   @include m.flex-center;
 }
 button {
@@ -342,7 +342,7 @@ button {
   padding: 14px 24px;
   border-radius: v.$radius-sm;
   border: none;
-  
+
   svg {
     width: 20px;
     height: 20px;
@@ -352,7 +352,7 @@ button {
 .btn-primary {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(102, 126, 234, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   position: relative;
@@ -360,7 +360,7 @@ button {
   width: 100%;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
@@ -377,7 +377,7 @@ button {
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(102, 126, 234, 0.4),
       0 0 0 1px rgba(255, 255, 255, 0.15) inset;
 
@@ -389,12 +389,12 @@ button {
   &:active:not(:disabled) {
     transform: translateY(0);
   }
-  
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
-  
+
   .spinner {
     width: 18px;
     height: 18px;
@@ -430,7 +430,7 @@ button {
   font-weight: 600;
   margin-bottom: 20px;
   animation: slideDown v.$transition-smooth;
-  
+
   svg {
     width: 20px;
     height: 20px;
@@ -456,13 +456,13 @@ button {
 .login-footer {
   margin-top: 32px;
   text-align: center;
-  
+
   .divider {
     position: relative;
     margin: 24px 0;
-    
+
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 50%;
@@ -475,7 +475,7 @@ button {
         transparent
       );
     }
-    
+
     span {
       position: relative;
       background: rgba(255, 255, 255, 0.95);
@@ -518,11 +518,11 @@ button {
     padding: 32px 24px;
     margin: 20px;
   }
-  
+
   h1 {
     font-size: 28px;
   }
-  
+
   .progress-steps {
     padding: 0 10px;
   }

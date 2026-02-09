@@ -1,13 +1,13 @@
-const { getDatabase } = require('../config/firebase');
-const emailService = require('../services/emailService');
+const { getDatabase } = require("../config/firebase");
+const emailService = require("../services/emailService");
 const {
   generateAccessCode,
   isValidEmail,
   sanitizeInput,
   hashPassword,
   verifyPassword,
-  isAccessCodeExpired
-} = require('../utils/helpers');
+  isAccessCodeExpired,
+} = require("../utils/helpers");
 
 /**
  * POST /api/employee/login-email
@@ -18,16 +18,16 @@ const loginEmail = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email is required' 
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
       });
     }
 
     if (!isValidEmail(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid email format' 
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
       });
     }
 
@@ -35,14 +35,17 @@ const loginEmail = async (req, res) => {
     const normalizedEmail = email.toLowerCase();
 
     // Find employee by email
-    const employeesRef = db.ref('employees');
-    const snapshot = await employeesRef.orderByChild('email').equalTo(normalizedEmail).once('value');
+    const employeesRef = db.ref("employees");
+    const snapshot = await employeesRef
+      .orderByChild("email")
+      .equalTo(normalizedEmail)
+      .once("value");
     const employees = snapshot.val();
 
     if (!employees) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'No account found with this email' 
+      return res.status(404).json({
+        success: false,
+        error: "No account found with this email",
       });
     }
 
@@ -51,9 +54,10 @@ const loginEmail = async (req, res) => {
 
     // Check if account is set up
     if (!employee.accountSetup) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Account not set up. Please check your email for the setup link.' 
+      return res.status(403).json({
+        success: false,
+        error:
+          "Account not set up. Please check your email for the setup link.",
       });
     }
 
@@ -61,33 +65,32 @@ const loginEmail = async (req, res) => {
     const accessCode = generateAccessCode();
     await db.ref(`employees/${employeeId}`).update({
       accessCode: accessCode,
-      accessCodeCreatedAt: Date.now()
+      accessCodeCreatedAt: Date.now(),
     });
 
     // Send access code via email
     try {
       await emailService.sendAccessCodeEmail(normalizedEmail, accessCode);
     } catch (emailError) {
-      console.error('Email sending failed:', emailError.message);
+      console.error("Email sending failed:", emailError.message);
       // Continue anyway - code is saved in DB
     }
 
     // ✅ FIXED: Return ownerId and employeeId for messaging
-    res.json({ 
+    res.json({
       success: true,
       accessCode: accessCode, // For testing purposes
       employeeId: employeeId, // ← Add employee ID
       ownerId: employee.ownerId || employee.assignedBy, // ← Add owner ID (phone number)
       email: employee.email,
       name: employee.name,
-      message: 'Access code sent to your email'
+      message: "Access code sent to your email",
     });
-
   } catch (error) {
-    console.error('Error in loginEmail:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to send login code' 
+    console.error("Error in loginEmail:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to send login code",
     });
   }
 };
@@ -101,16 +104,16 @@ const validateAccessCode = async (req, res) => {
     const { email, accessCode } = req.body; // ← Take EMAIL, not employeeId!
 
     if (!email || !accessCode) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email and access code required' 
+      return res.status(400).json({
+        success: false,
+        error: "Email and access code required",
       });
     }
 
     if (!isValidEmail(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid email format' 
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
       });
     }
 
@@ -118,14 +121,17 @@ const validateAccessCode = async (req, res) => {
     const normalizedEmail = email.toLowerCase();
 
     // ✅ Find employee by EMAIL first (more secure than employeeId)
-    const employeesRef = db.ref('employees');
-    const snapshot = await employeesRef.orderByChild('email').equalTo(normalizedEmail).once('value');
+    const employeesRef = db.ref("employees");
+    const snapshot = await employeesRef
+      .orderByChild("email")
+      .equalTo(normalizedEmail)
+      .once("value");
     const employees = snapshot.val();
 
     if (!employees) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'No account found with this email' 
+      return res.status(404).json({
+        success: false,
+        error: "No account found with this email",
       });
     }
 
@@ -134,28 +140,28 @@ const validateAccessCode = async (req, res) => {
 
     // Check access code
     if (employee.accessCode !== accessCode) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Invalid access code' 
+      return res.status(401).json({
+        success: false,
+        error: "Invalid access code",
       });
     }
 
     // Check if access code has expired (10 minutes)
     if (isAccessCodeExpired(employee.accessCodeCreatedAt, 600000)) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Access code expired. Please request a new one.' 
+      return res.status(401).json({
+        success: false,
+        error: "Access code expired. Please request a new one.",
       });
     }
 
     // Clear access code after use
     await db.ref(`employees/${employeeId}`).update({
       accessCode: null,
-      accessCodeCreatedAt: null
+      accessCodeCreatedAt: null,
     });
 
     // ✅ Return complete employee data including ownerId
-    res.json({ 
+    res.json({
       success: true,
       employee: {
         employeeId: employee.employeeId,
@@ -164,16 +170,15 @@ const validateAccessCode = async (req, res) => {
         phone: employee.phone,
         department: employee.department,
         role: employee.role,
-        ownerId: employee.ownerId || employee.assignedBy // ← Owner's phone
+        ownerId: employee.ownerId || employee.assignedBy, // ← Owner's phone
       },
-      message: 'Login successful' 
+      message: "Login successful",
     });
-
   } catch (error) {
-    console.error('Error in validateAccessCode:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to validate access code' 
+    console.error("Error in validateAccessCode:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to validate access code",
     });
   }
 };
@@ -187,74 +192,79 @@ const setupAccount = async (req, res) => {
     const { token, employeeId, password } = req.body;
 
     if (!token || !employeeId || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Token, employee ID, and password are required' 
+      return res.status(400).json({
+        success: false,
+        error: "Token, employee ID, and password are required",
       });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Password must be at least 6 characters' 
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 6 characters",
       });
     }
 
     const db = getDatabase();
     const employeeRef = db.ref(`employees/${employeeId}`);
-    const snapshot = await employeeRef.once('value');
+    const snapshot = await employeeRef.once("value");
     const employee = snapshot.val();
 
     if (!employee) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Employee not found' 
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
       });
     }
 
     if (employee.accountSetup) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Account already set up. Please use login.' 
+      return res.status(400).json({
+        success: false,
+        error: "Account already set up. Please use login.",
       });
     }
 
     if (employee.setupToken !== token) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Invalid setup token' 
+      return res.status(401).json({
+        success: false,
+        error: "Invalid setup token",
       });
     }
 
     // Check if token is expired (24 hours)
     const tokenAge = Date.now() - (employee.setupTokenCreatedAt || 0);
     if (tokenAge > 86400000) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Setup link has expired. Please contact your manager.' 
+      return res.status(401).json({
+        success: false,
+        error: "Setup link has expired. Please contact your manager.",
       });
     }
 
     // Hash password and update account
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
+    console.log({
+      hashedPassword,
+      type: typeof hashedPassword,
+    });
+
     await employeeRef.update({
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       accountSetup: true,
-      setupToken: '',
+      setupToken: null,
       setupTokenCreatedAt: null,
-      accountSetupAt: Date.now()
+      accountSetupAt: Date.now(),
+      password: null,
     });
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Account set up successfully. You can now log in.'
+      message: "Account set up successfully. You can now log in.",
     });
-
   } catch (error) {
-    console.error('Error in setupAccount:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to set up account' 
+    console.error("Error in setupAccount:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to set up account",
     });
   }
 };
@@ -272,26 +282,26 @@ const getProfile = async (req, res) => {
     const { employeeId } = req.params;
 
     if (!employeeId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Employee ID is required' 
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID is required",
       });
     }
 
     const db = getDatabase();
     const employeeRef = db.ref(`employees/${employeeId}`);
-    const snapshot = await employeeRef.once('value');
+    const snapshot = await employeeRef.once("value");
     const employee = snapshot.val();
 
     if (!employee) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Employee not found' 
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
       });
     }
 
     // ✅ FIXED: Return only safe data including ownerId
-    res.json({ 
+    res.json({
       success: true,
       employee: {
         employeeId: employee.employeeId,
@@ -300,15 +310,14 @@ const getProfile = async (req, res) => {
         phone: employee.phone,
         department: employee.department,
         role: employee.role,
-        ownerId: employee.ownerId || employee.assignedBy // ← ADD THIS!
-      }
+        ownerId: employee.ownerId || employee.assignedBy, // ← ADD THIS!
+      },
     });
-
   } catch (error) {
-    console.error('Error in getProfile:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve profile' 
+    console.error("Error in getProfile:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve profile",
     });
   }
 };
@@ -322,27 +331,27 @@ const updateProfile = async (req, res) => {
     const { employeeId, name, phone } = req.body;
 
     if (!employeeId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Employee ID is required' 
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID is required",
       });
     }
 
     const db = getDatabase();
     const employeeRef = db.ref(`employees/${employeeId}`);
-    
+
     // Check if employee exists
-    const snapshot = await employeeRef.once('value');
+    const snapshot = await employeeRef.once("value");
     if (!snapshot.exists()) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Employee not found' 
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
       });
     }
 
     // Prepare update data
     const updateData = {
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     if (name) updateData.name = sanitizeInput(name);
@@ -350,16 +359,15 @@ const updateProfile = async (req, res) => {
 
     await employeeRef.update(updateData);
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: "Profile updated successfully",
     });
-
   } catch (error) {
-    console.error('Error in updateProfile:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to update profile' 
+    console.error("Error in updateProfile:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update profile",
     });
   }
 };
@@ -373,15 +381,15 @@ const getAllTasks = async (req, res) => {
     const { ownerId, status, priority } = req.query;
 
     const db = getDatabase();
-    const employeesRef = db.ref('employees');
-    const snapshot = await employeesRef.once('value');
+    const employeesRef = db.ref("employees");
+    const snapshot = await employeesRef.once("value");
     const employees = snapshot.val();
 
     if (!employees) {
-      return res.json({ 
+      return res.json({
         success: true,
         tasks: [],
-        count: 0
+        count: 0,
       });
     }
 
@@ -390,17 +398,21 @@ const getAllTasks = async (req, res) => {
     // Collect tasks from all employees
     for (const [empId, empData] of Object.entries(employees)) {
       // Filter by ownerId if provided
-      if (ownerId && empData.ownerId !== ownerId && empData.assignedBy !== ownerId) {
+      if (
+        ownerId &&
+        empData.ownerId !== ownerId &&
+        empData.assignedBy !== ownerId
+      ) {
         continue;
       }
 
       if (empData.tasks) {
-        const tasks = Object.values(empData.tasks).map(task => ({
+        const tasks = Object.values(empData.tasks).map((task) => ({
           ...task,
           employeeId: empId,
           employeeName: empData.name,
           employeeEmail: empData.email,
-          department: empData.department
+          department: empData.department,
         }));
 
         allTasks = allTasks.concat(tasks);
@@ -409,28 +421,27 @@ const getAllTasks = async (req, res) => {
 
     // Filter by status if provided
     if (status) {
-      allTasks = allTasks.filter(task => task.status === status);
+      allTasks = allTasks.filter((task) => task.status === status);
     }
 
     // Filter by priority if provided
     if (priority) {
-      allTasks = allTasks.filter(task => task.priority === priority);
+      allTasks = allTasks.filter((task) => task.priority === priority);
     }
 
     // Sort by createdAt (newest first)
     allTasks.sort((a, b) => b.createdAt - a.createdAt);
 
-    res.json({ 
+    res.json({
       success: true,
       tasks: allTasks,
-      count: allTasks.length
+      count: allTasks.length,
     });
-
   } catch (error) {
-    console.error('Error in getAllTasks:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve all tasks' 
+    console.error("Error in getAllTasks:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve all tasks",
     });
   }
 };
@@ -444,27 +455,26 @@ const getTasks = async (req, res) => {
     const { employeeId } = req.params;
 
     if (!employeeId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Employee ID is required' 
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID is required",
       });
     }
 
     const db = getDatabase();
     const tasksRef = db.ref(`employees/${employeeId}/tasks`);
-    const snapshot = await tasksRef.once('value');
+    const snapshot = await tasksRef.once("value");
     const tasks = snapshot.val();
 
-    res.json({ 
+    res.json({
       success: true,
-      tasks: tasks ? Object.values(tasks) : []
+      tasks: tasks ? Object.values(tasks) : [],
     });
-
   } catch (error) {
-    console.error('Error in getTasks:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve tasks' 
+    console.error("Error in getTasks:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve tasks",
     });
   }
 };
@@ -472,54 +482,50 @@ const getTasks = async (req, res) => {
  * POST /api/employee/tasks/
  * POST employee's tasks
  */
- const createTask = async (req, res) => {
+const createTask = async (req, res) => {
   try {
-    const { 
-      employeeId, 
-      title, 
-      description, 
-      priority, 
-      dueDate,
-      status 
-    } = req.body;
+    const { employeeId, title, description, priority, dueDate, status } =
+      req.body;
 
     // ✅ Validation
     if (!employeeId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Employee ID is required' 
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID is required",
       });
     }
 
-    if (!title || title.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Task title is required' 
+    if (!title || title.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        error: "Task title is required",
       });
     }
 
     if (title.length > 200) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Task title must be less than 200 characters' 
+      return res.status(400).json({
+        success: false,
+        error: "Task title must be less than 200 characters",
       });
     }
 
     // ✅ Validate priority
-    const validPriorities = ['low', 'medium', 'high'];
-    const taskPriority = priority && validPriorities.includes(priority) ? priority : 'medium';
+    const validPriorities = ["low", "medium", "high"];
+    const taskPriority =
+      priority && validPriorities.includes(priority) ? priority : "medium";
 
     // ✅ Validate status
-    const validStatuses = ['pending', 'in-progress', 'completed'];
-    const taskStatus = status && validStatuses.includes(status) ? status : 'pending';
+    const validStatuses = ["pending", "in-progress", "completed"];
+    const taskStatus =
+      status && validStatuses.includes(status) ? status : "pending";
 
     // ✅ Validate due date if provided
     if (dueDate) {
       const dueDateObj = new Date(dueDate);
       if (isNaN(dueDateObj.getTime())) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Invalid due date format (use ISO format: YYYY-MM-DD)' 
+        return res.status(400).json({
+          success: false,
+          error: "Invalid due date format (use ISO format: YYYY-MM-DD)",
         });
       }
     }
@@ -528,12 +534,12 @@ const getTasks = async (req, res) => {
 
     // ✅ Check if employee exists
     const employeeRef = db.ref(`employees/${employeeId}`);
-    const empSnapshot = await employeeRef.once('value');
-    
+    const empSnapshot = await employeeRef.once("value");
+
     if (!empSnapshot.exists()) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Employee not found' 
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
       });
     }
 
@@ -544,12 +550,12 @@ const getTasks = async (req, res) => {
     const taskData = {
       taskId: taskId,
       title: sanitizeInput(title),
-      description: description ? sanitizeInput(description) : '',
+      description: description ? sanitizeInput(description) : "",
       priority: taskPriority,
       status: taskStatus,
       dueDate: dueDate || null,
       createdAt: Date.now(),
-      completedAt: null
+      completedAt: null,
     };
 
     // ✅ Save task to database
@@ -562,30 +568,32 @@ const getTasks = async (req, res) => {
         await emailService.sendTaskAssignmentEmail(
           employee.email,
           employee.name,
-          taskData
+          taskData,
         );
       }
     } catch (emailError) {
-      console.error('Failed to send task notification email:', emailError.message);
+      console.error(
+        "Failed to send task notification email:",
+        emailError.message,
+      );
       // Continue anyway - task is saved
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       task: taskData,
-      message: 'Task created successfully and assigned to employee'
+      message: "Task created successfully and assigned to employee",
     });
-
   } catch (error) {
-    console.error('Error in createTask:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to create task' 
+    console.error("Error in createTask:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create task",
     });
   }
 };
 
- /* PUT /api/employee/task/:taskId/complete
+/* PUT /api/employee/task/:taskId/complete
  * Mark task as complete
  */
 const completeTask = async (req, res) => {
@@ -594,40 +602,39 @@ const completeTask = async (req, res) => {
     const { employeeId } = req.body;
 
     if (!taskId || !employeeId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Task ID and Employee ID are required' 
+      return res.status(400).json({
+        success: false,
+        error: "Task ID and Employee ID are required",
       });
     }
 
     const db = getDatabase();
     const taskRef = db.ref(`employees/${employeeId}/tasks/${taskId}`);
-    
+
     // Check if task exists
-    const snapshot = await taskRef.once('value');
+    const snapshot = await taskRef.once("value");
     if (!snapshot.exists()) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Task not found' 
+      return res.status(404).json({
+        success: false,
+        error: "Task not found",
       });
     }
 
     // Update task status
     await taskRef.update({
-      status: 'completed',
-      completedAt: Date.now()
+      status: "completed",
+      completedAt: Date.now(),
     });
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Task marked as complete'
+      message: "Task marked as complete",
     });
-
   } catch (error) {
-    console.error('Error in completeTask:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to complete task' 
+    console.error("Error in completeTask:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to complete task",
     });
   }
 };
@@ -641,5 +648,5 @@ module.exports = {
   getTasks,
   createTask,
   completeTask,
-  getAllTasks
+  getAllTasks,
 };

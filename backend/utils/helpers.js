@@ -26,14 +26,26 @@ const generateSetupToken = () => {
  * Format phone number to E.164 format
  */
 const formatPhoneNumber = (phoneNumber) => {
+  if (!phoneNumber) return "";
+
   let cleaned = phoneNumber.replace(/\D/g, '');
-  
-  if (!cleaned.startsWith('1') && cleaned.length === 10) {
-    cleaned = '1' + cleaned;
+
+  if (cleaned.startsWith('84')) {
+    return '+' + cleaned;
   }
-  
+
+  if (cleaned.startsWith('0')) {
+    return '+84' + cleaned.substring(1);
+  }
+
+  if (cleaned.length === 9) {
+    return '+84' + cleaned;
+  }
+
+  // Fallback
   return '+' + cleaned;
 };
+
 
 /**
  * Validate email format

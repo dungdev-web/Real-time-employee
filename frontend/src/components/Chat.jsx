@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import socketService from "../lib/socket";
 import "../css/Chat.scss";
 import { chatAPI } from "../services/api";
-
+import { Send } from 'lucide-react';
 function Chat({ conversationId, currentUserId, currentUserType, otherUserId, otherUserName }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -321,11 +321,9 @@ function Chat({ conversationId, currentUserId, currentUserType, otherUserId, oth
             disabled={!connected || !newMessage.trim()}
             className="send-button"
           >
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Send
+            
+                <Send />
+
           </button>
         </form>
       </div>

@@ -22,9 +22,8 @@ function EmployeeLogin() {
       // ✅ Send email to get access code
       const response = await employeeAPI.loginEmail(email);
       if (response.success) {
-        // ✅ Save email in sessionStorage (temporary)
         sessionStorage.setItem("loginEmail", email);
-        
+
         setMessage("Access code sent to your email!");
         setStep(2);
       } else {
@@ -43,9 +42,8 @@ function EmployeeLogin() {
     setLoading(true);
 
     try {
-      // ✅ Get email from sessionStorage
       const loginEmail = sessionStorage.getItem("loginEmail");
-      
+
       if (!loginEmail) {
         setError("Session expired. Please start over.");
         setStep(1);
@@ -53,21 +51,21 @@ function EmployeeLogin() {
         return;
       }
 
-      // ✅ Send EMAIL + code (not employeeId!)
-      const response = await employeeAPI.validateAccessCode(loginEmail, accessCode);
-      
+      const response = await employeeAPI.validateAccessCode(
+        loginEmail,
+        accessCode,
+      );
+
       if (response.success) {
-        // ✅ Save employee data including ownerId
         localStorage.setItem("userType", "employee");
         localStorage.setItem("email", loginEmail);
-          localStorage.setItem("ownerId", response.employee.ownerId);
+        localStorage.setItem("ownerId", response.employee.ownerId);
         localStorage.setItem("employeeId", response.employee.employeeId);
         localStorage.setItem("employeeData", JSON.stringify(response.employee));
 
-        // ✅ Clear temporary session
         sessionStorage.removeItem("loginEmail");
+
         
-        // Redirect
         navigate("/employee/dashboard");
       } else {
         setError(response.error || "Invalid access code");
@@ -248,7 +246,8 @@ function EmployeeLogin() {
             {/* ✅ Show which email we're verifying */}
             <div className="form-group">
               <p className="email-display">
-                Verifying: <strong>{sessionStorage.getItem("loginEmail")}</strong>
+                Verifying:{" "}
+                <strong>{sessionStorage.getItem("loginEmail")}</strong>
               </p>
             </div>
 
