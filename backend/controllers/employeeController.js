@@ -1,4 +1,5 @@
 const { getDatabase } = require("../config/firebase");
+const jwt = require('jsonwebtoken');
 const emailService = require("../services/emailService");
 const {
   generateAccessCode,
@@ -11,7 +12,7 @@ const {
 
 /**
  * POST /api/employee/login-email
- * Step 1: Send access code to employee email
+ * Send access code to employee email
  */
 const loginEmail = async (req, res) => {
   try {
@@ -76,12 +77,11 @@ const loginEmail = async (req, res) => {
       // Continue anyway - code is saved in DB
     }
 
-    // ✅ FIXED: Return ownerId and employeeId for messaging
     res.json({
       success: true,
-      accessCode: accessCode, // For testing purposes
-      employeeId: employeeId, // ← Add employee ID
-      ownerId: employee.ownerId || employee.assignedBy, // ← Add owner ID (phone number)
+      accessCode: accessCode,
+      employeeId: employeeId,
+      ownerId: employee.ownerId,
       email: employee.email,
       name: employee.name,
       message: "Access code sent to your email",
@@ -94,10 +94,105 @@ const loginEmail = async (req, res) => {
     });
   }
 };
+/**
+ * POST /api/employee/login(formal)
+ */
+const login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
+    if (!username || username.length < 4) {
+      return res.status(400).json({
+        status: false,
+        error: "Username phải có ít nhất 4 ký tự",
+      });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        status: false,
+        error: "Password phải có ít nhất 6 ký tự",
+      });
+    }
+
+    const db = getDatabase();
+    const employeesRef = db.ref("employees");
+
+    const snapshot = await employeesRef
+      .orderByChild("username")
+      .equalTo(username)
+      .once("value");
+
+    if (!snapshot.exists()) {
+      return res.status(401).json({
+        status: false,
+        error: "Username hoặc password không chính xác",
+      });
+    }
+
+    // Lấy dữ liệu employee
+   let employee = null;
+    let employeeId = null;
+    snapshot.forEach((child) => {
+      employee = child.val();
+      employeeId = child.key;
+    });
+
+    if (!employee.accountSetup) {
+      return res.status(401).json({
+        status: false,
+        error: "Account chưa được thiết lập. Vui lòng kiểm tra email.",
+      });
+    }
+
+   
+
+    const isPasswordValid = await verifyPassword(
+      password.trim(),
+      employee.passwordHash.trim() 
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        status: false,
+        error: "Username hoặc password không chính xác",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        employeeId: employeeId,
+        username: employee.username,
+        email: employee.email,
+        role: employee.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" },
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "Đăng nhập thành công",
+      data: {
+        employeeId: employeeId,
+        username: employee.username,
+        email: employee.email,
+        name: employee.name,
+        role: employee.role,
+        token: token,
+      },
+    });
+  } catch (error) {
+    console.error("Error in login:", error);
+    return res.status(500).json({
+      status: false,
+      error: "Lỗi server: " + error.message,
+    });
+  }
+};
 /**
  * POST /api/employee/validate-access-code
- * Step 2: Validate access code and authenticate employee
+ * Validate access code and authenticate employee
  */
 const validateAccessCode = async (req, res) => {
   try {
@@ -189,15 +284,20 @@ const validateAccessCode = async (req, res) => {
  */
 const setupAccount = async (req, res) => {
   try {
-    const { token, employeeId, password } = req.body;
+    const { token, employeeId, password, username } = req.body;
 
-    if (!token || !employeeId || !password) {
+    if (!token || !employeeId || !password || !username) {
       return res.status(400).json({
         success: false,
-        error: "Token, employee ID, and password are required",
+        error: "Token, employee ID, username and password are required",
       });
     }
-
+    if (username.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: "Username must be at least 4 characters",
+      });
+    }
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -231,7 +331,6 @@ const setupAccount = async (req, res) => {
       });
     }
 
-    // Check if token is expired (24 hours)
     const tokenAge = Date.now() - (employee.setupTokenCreatedAt || 0);
     if (tokenAge > 86400000) {
       return res.status(401).json({
@@ -240,12 +339,12 @@ const setupAccount = async (req, res) => {
       });
     }
 
-    // Hash password and update account
     const hashedPassword = await hashPassword(password);
-    console.log({
-      hashedPassword,
-      type: typeof hashedPassword,
-    });
+     console.log("=== SETUP ACCOUNT DEBUG ===");
+    console.log("Password:", password);
+    console.log("Hashed password:", hashedPassword);
+    console.log("Hash length:", hashedPassword.length); // Phải = 60
+    console.log("============================");
 
     await employeeRef.update({
       passwordHash: hashedPassword,
@@ -253,7 +352,8 @@ const setupAccount = async (req, res) => {
       setupToken: null,
       setupTokenCreatedAt: null,
       accountSetupAt: Date.now(),
-      password: null,
+      // password: null,
+      username,
     });
 
     res.json({
@@ -310,7 +410,7 @@ const getProfile = async (req, res) => {
         phone: employee.phone,
         department: employee.department,
         role: employee.role,
-        ownerId: employee.ownerId || employee.assignedBy, // ← ADD THIS!
+        ownerId: employee.ownerId || employee.assignedBy,
       },
     });
   } catch (error) {
@@ -641,6 +741,7 @@ const completeTask = async (req, res) => {
 
 module.exports = {
   loginEmail,
+  login,
   validateAccessCode,
   setupAccount,
   getProfile,

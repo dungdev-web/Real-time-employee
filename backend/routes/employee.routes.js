@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   loginEmail,
+  login,
   validateAccessCode,
   setupAccount,
   getProfile,
@@ -16,6 +17,7 @@ const {
 // Authentication routes
 // employee login with email
 router.post('/email', loginEmail);
+router.post('/',login)
 // employee verify access code
 router.post('/access-code/verify-email', validateAccessCode);
 router.post('/setup-account', setupAccount);

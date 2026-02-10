@@ -9,6 +9,8 @@ const {
   isValidEmail,
   isValidPhoneNumber,
   sanitizeInput,
+  createConversationId,
+  generateMessageId
 } = require("../utils/helpers");
 
 /**
@@ -146,7 +148,7 @@ const validateAccessCode = async (req, res) => {
  */
 const getEmployee = async (req, res) => {
   try {
-    const {employeeId} = req.params;
+    const { employeeId } = req.params;
     if (!employeeId) {
       return res.status(400).json({
         success: false,
@@ -205,7 +207,6 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    // ✅ Validate ownerId (required!)
     if (!ownerId) {
       return res.status(400).json({
         success: false,
@@ -214,6 +215,18 @@ const createEmployee = async (req, res) => {
     }
 
     const db = getDatabase();
+    const existingEmployee = await db
+      .ref("employees")
+      .orderByChild("email")
+      .equalTo(email.toLowerCase())
+      .once("value");
+
+    if (existingEmployee.exists()) {
+      return res.status(400).json({
+        success: false,
+        error: "Email đã được sử dụng",
+      });
+    }
     const employeeId = generateEmployeeId();
     const setupToken = generateSetupToken();
 
@@ -225,17 +238,31 @@ const createEmployee = async (req, res) => {
       department: sanitizeInput(department),
       phone: phone ? formatPhoneNumber(phone) : "",
       role: role ? sanitizeInput(role) : "Employee",
-      ownerId: String(ownerId).startsWith('+') ? String(ownerId) : `+${ownerId}`, // ✅ ADD THIS!
+      ownerId: String(ownerId).startsWith("+")
+        ? String(ownerId)
+        : `+${ownerId}`, // ✅ ADD THIS!
       setupToken,
       setupTokenCreatedAt: Date.now(),
       accountSetup: false,
       createdAt: Date.now(),
       accessCode: "",
-      password: "",
       tasks: {},
     };
 
     await db.ref(`employees/${employeeId}`).set(employeeData);
+    const conversationId = createConversationId(ownerId, employeeId);
+
+    const messageId = generateMessageId();
+    const welcomeMessage = {
+      messageId,
+      senderId: ownerId,
+      senderType: "owner",
+      receiverId: ownerId,
+      message: `Hi!`,
+      timestamp: Date.now(),
+      read: false,
+    };
+    await db.ref(`messages/${conversationId}/${messageId}`).set(welcomeMessage);
 
     // Generate setup link
     const setupLink = `${process.env.FRONTEND_URL}/employee/setup?token=${setupToken}&id=${employeeId}`;
@@ -251,9 +278,10 @@ const createEmployee = async (req, res) => {
     res.json({
       success: true,
       employeeId,
-      ownerId: employeeData.ownerId, // ✅ Return it in response
+      ownerId: employeeData.ownerId,
+      conversationId,
       message: "Employee created successfully. Setup email sent.",
-      setupLink, // For testing purposes
+      // setupLink,
     });
   } catch (error) {
     console.error("Error in createEmployee:", error);
@@ -270,7 +298,7 @@ const createEmployee = async (req, res) => {
  */
 const deleteEmployee = async (req, res) => {
   try {
-    const {employeeId} = req.params;
+    const { employeeId } = req.params;
     if (!employeeId) {
       return res.status(400).json({
         success: false,
@@ -365,8 +393,8 @@ const getAllEmployees = async (req, res) => {
  */
 const updateEmployee = async (req, res) => {
   try {
-    const {  name, email, department, phone, role } = req.body;
-    const {employeeId} = req.params;
+    const { name, email, department, phone, role } = req.body;
+    const { employeeId } = req.params;
     if (!employeeId) {
       return res.status(400).json({
         success: false,

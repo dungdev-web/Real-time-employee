@@ -527,3 +527,30 @@ button {
     padding: 0 10px;
   }
 }
+.login-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.login-tabs .tab {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.login-tabs .tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.login-tabs .tab:disabled {
+  cursor: not-allowed;
+}
