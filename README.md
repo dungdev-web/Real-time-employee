@@ -72,7 +72,8 @@ firebase/
 │       ├── setupToken: string
 │       ├── setupTokenCreatedAt: number
 │       ├── accountSetup: boolean
-│       ├── password: string (hashed)
+│       ├── password: string 
+│       ├── passwordHash: string (hashed)
 │       ├── accessCode: string
 │       ├── accessCodeCreatedAt: number
 │       ├── createdAt: number
@@ -84,6 +85,7 @@ firebase/
 │               ├── status: string
 │               ├── assignedBy: string
 │               ├── createdAt: number
+│               ├── createdAt: timestamp
 │               └── completedAt: number
 │
 └── messages/
