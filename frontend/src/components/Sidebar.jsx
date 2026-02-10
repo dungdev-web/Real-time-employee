@@ -7,7 +7,8 @@ function Sidebar({ menuItems, messagePath }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { conversations, selectConversation, selectedConversation } = useChat();
+  const { conversations, selectConversation, selectedConversation, unreadMap } =
+    useChat();
 
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
@@ -50,7 +51,6 @@ function Sidebar({ menuItems, messagePath }) {
           </div>
         ))}
       </div>
-      
 
       {/* CHAT SIDEBAR */}
       {location.pathname === messagePath && (
@@ -89,7 +89,12 @@ function Sidebar({ menuItems, messagePath }) {
                     <div className="conversation-header">
                       <span className="conversation-name">
                         {conv.otherUserName}
+
+                        {unreadMap?.[conv.id] && (
+                          <span className="unread-dot" />
+                        )}
                       </span>
+
                       {conv.lastMessage && (
                         <span className="conversation-time">
                           {formatTime(conv.lastMessage.timestamp)}
@@ -98,9 +103,9 @@ function Sidebar({ menuItems, messagePath }) {
                     </div>
 
                     <div className="conversation-preview">
-                      <p className="last-message">
-                        {conv.lastMessage?.message || "No messages yet"}
-                      </p>
+                        <p className="last-message">
+                          {conv.lastMessage?.message || "No messages yet"}
+                        </p>
                     </div>
                   </div>
                 </div>

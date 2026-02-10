@@ -122,56 +122,56 @@ function Chat({
   }, [conversationId, currentUserId, currentUserType, otherUserId]);
 
   useEffect(() => {
-    if (!conversationId) return;
+  if (!conversationId) return;
 
-    const handleNewMessage = (msg) => {
-
-      setMessages((prev) => {
-        const exists = prev.find((m) => m.messageId === msg.messageId);
-        if (exists) {
-          return prev;
-        }
-        const updated = [...prev, msg];
-
-        setTimeout(() => scrollToBottom(), 100);
-
-        return updated;
-      });
-    };
-
-    // TYPING HANDLER
-    const handleUserTyping = (data) => {
-      if (String(data.userId) === String(otherUserId)) {
-        setIsTyping(data.typing);
+  const handleNewMessage = (msg) => {
+    setMessages((prev) => {
+      const exists = prev.find((m) => m.messageId === msg.messageId);
+      if (exists) {
+        return prev;
       }
-    };
+      const updated = [...prev, msg];
+      setTimeout(() => scrollToBottom(), 100);
+      return updated;
+    });
+  };
 
-    // USER STATUS HANDLER
-    const handleUserStatus = (data) => {
-      if (String(data.userId) === String(otherUserId)) {
-        setOtherUserOnline(data.status === "online");
-      }
-    };
+  // ✅ TYPING HANDLER
+  const handleUserTyping = (data) => {
+    if (String(data.userId) === String(otherUserId)) {
+      setIsTyping(data.typing);
+    }
+  };
 
-    // LOAD MESSAGES HANDLER (from socket)
-    const handleLoadMessages = (data) => {
-      if (data && data.length > 0) {
-        setMessages(data);
-        scrollToBottom();
-      }
-    };
-    socketService.registerListener("new-message", handleNewMessage);
-    socketService.registerListener("user-typing", handleUserTyping);
-    socketService.registerListener("user-status-changed", handleUserStatus);
-    socketService.registerListener("load-messages", handleLoadMessages);
+  // ✅ USER STATUS HANDLER - Cải tiến
+  const handleUserStatus = (data) => {
+    console.log("📊 User status changed:", data.userId, data.status);
+    
+    if (String(data.userId) === String(otherUserId)) {
+      setOtherUserOnline(data.status === "online");
+    }
+  };
 
-    return () => {
-      socketService.removeListener("new-message");
-      socketService.removeListener("user-typing");
-      socketService.removeListener("user-status-changed");
-      socketService.removeListener("load-messages");
-    };
-  }, [conversationId, otherUserId]);
+  // ✅ LOAD MESSAGES HANDLER
+  const handleLoadMessages = (data) => {
+    if (data && data.length > 0) {
+      setMessages(data);
+      scrollToBottom();
+    }
+  };
+
+  socketService.registerListener("new-message", handleNewMessage);
+  socketService.registerListener("user-typing", handleUserTyping);
+  socketService.registerListener("user-status-changed", handleUserStatus);
+  socketService.registerListener("load-messages", handleLoadMessages);
+
+  return () => {
+    socketService.removeListener("new-message");
+    socketService.removeListener("user-typing");
+    socketService.removeListener("user-status-changed");
+    socketService.removeListener("load-messages");
+  };
+}, [conversationId, otherUserId]);
 
   // ===== SEND MESSAGE =====
   const handleSendMessage = (e) => {

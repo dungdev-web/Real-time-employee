@@ -358,7 +358,7 @@ function OwnerDashboard() {
           <div className="quick-actions glass-card">
             <h2>Quick Actions</h2>
             <div className="actions-grid">
-              <Link to="/owner/manage-employees" className="action-card">
+              <Link to="/owner/employee" className="action-card">
                 <div className="action-icon">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path

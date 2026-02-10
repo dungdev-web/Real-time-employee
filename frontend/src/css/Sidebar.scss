@@ -230,3 +230,24 @@
     width: 20px !important;
   }
 }
+.conversation-name {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff3b30;
+  border-radius: 50%;
+  display: inline-block;
+}
+.conversation-item.has-unread {
+  background: rgba(255, 59, 48, 0.05);
+}
+
+.conversation-item.has-unread .conversation-name {
+  font-weight: 600;
+}

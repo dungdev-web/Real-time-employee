@@ -189,7 +189,7 @@ function EmployeeTask() {
       {/* Main Content */}
       <div className="task-content">
         {/* Stats Cards */}
-        <div className="stats-grid">
+        {/* <div className="stats-grid">
           <div className="stat-card total-tasks">
             <div className="stat-icon">
               <svg viewBox="0 0 24 24" fill="none">
@@ -240,7 +240,7 @@ function EmployeeTask() {
               <p>High Priority</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Filters & Sort */}
         <div className="task-controls glass-card">
