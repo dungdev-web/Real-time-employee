@@ -1,85 +1,92 @@
-import axios from 'axios';
+import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 // Owner API calls
 export const ownerAPI = {
   // Create access code for phone login
   createAccessCode: async (phoneNumber) => {
-    const response = await api.post('/api/owner/access-code', { phoneNumber });
+    const response = await api.post("/api/owner/access-code", { phoneNumber });
     return response.data;
   },
 
   // Validate access code
   validateAccessCode: async (phoneNumber, accessCode) => {
-    const response = await api.post('/api/owner/access-code/verify', {
+    const response = await api.post("/api/owner/access-code/verify", {
       phoneNumber,
-      accessCode
+      accessCode,
     });
     return response.data;
   },
 
   // Get all employees
   getAllEmployees: async () => {
-    const response = await api.get('/api/owner/all-employees');
+    const response = await api.get("/api/owner/all-employees");
     return response.data;
   },
 
   // Get single employee
   getEmployee: async (employeeId) => {
-    const response = await api.post('/api/owner/get-employee', { employeeId });
+    const response = await api.post("/api/owner/get-employee", { employeeId });
     return response.data;
   },
 
   // Create new employee
   createEmployee: async (employeeData) => {
-    const response = await api.post('/api/owner/employee', employeeData);
+    const response = await api.post("/api/owner/employee", employeeData);
     return response.data;
   },
 
   // Update employee
-  updateEmployee: async (employeeId,employeeData) => {
-    const response = await api.put(`api/owner/employee/${employeeId}`, employeeData);
+  updateEmployee: async (employeeId, employeeData) => {
+    const response = await api.put(
+      `api/owner/employee/${employeeId}`,
+      employeeData,
+    );
     return response.data;
   },
 
   // Delete employee
   deleteEmployee: async (employeeId) => {
-    const response = await api.delete(`/api/owner/employee/${employeeId }`);
+    const response = await api.delete(`/api/owner/employee/${employeeId}`);
     return response.data;
-  }
+  },
 };
 
 // Employee API calls
 export const employeeAPI = {
   // Send login code to email
   loginEmail: async (email) => {
-    const response = await api.post('/api/employee/email', { email });
+    const response = await api.post("/api/employee/email", { email });
     return response.data;
   },
-
+  login: async (username, password) => {
+    const response = await api.post("/api/employee", { username, password });
+    return response.data;
+  },
   // Validate access code
   validateAccessCode: async (email, accessCode) => {
-    const response = await api.post('/api/employee/access-code/verify-email', {
+    const response = await api.post("/api/employee/access-code/verify-email", {
       email,
-      accessCode
+      accessCode,
     });
     return response.data;
   },
 
   // Setup account
-  setupAccount: async (token, employeeId, password) => {
-    const response = await api.post('/api/employee/setup-account', {
+  setupAccount: async (token, employeeId, password, username) => {
+    const response = await api.post("/api/employee/setup-account", {
       token,
       employeeId,
-      password
+      password,
+      username,
     });
     return response.data;
   },
@@ -92,7 +99,7 @@ export const employeeAPI = {
 
   // Update profile
   updateProfile: async (profileData) => {
-    const response = await api.put('/api/employee/profile', profileData);
+    const response = await api.put("/api/employee/profile", profileData);
     return response.data;
   },
 
@@ -101,29 +108,29 @@ export const employeeAPI = {
     const response = await api.get(`/api/employee/tasks/${employeeId}`);
     return response.data;
   },
-   getAlllTasks: async () => {
+  getAlllTasks: async () => {
     const response = await api.get(`/api/employee/tasks`);
     return response.data;
   },
   // Pót tasks
-  createTask: async(employeeData) =>{
-    const respon = await api.post(`/api/employee/tasks`,employeeData);
+  createTask: async (employeeData) => {
+    const respon = await api.post(`/api/employee/tasks`, employeeData);
     return respon.data;
   },
   // Complete task
   completeTask: async (employeeId, taskId) => {
     const response = await api.put(`/api/employee/task/${taskId}/complete`, {
-      employeeId
+      employeeId,
     });
     return response.data;
-  }
+  },
 };
 // Chat API calls
 export const chatAPI = {
   // Lấy danh sách conversation (sidebar)
   getConversations: async (userId) => {
     const res = await api.get(`/api/chat/conversations`, {
-      params: { userId }
+      params: { userId },
     });
     return res.data;
   },
@@ -133,8 +140,6 @@ export const chatAPI = {
     const res = await api.get(`/api/chat/messages/${conversationId}`);
     return res.data;
   },
-
-
 };
 
 export default api;

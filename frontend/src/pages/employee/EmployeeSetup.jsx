@@ -5,6 +5,7 @@ import '../../css/OwnerLogin.scss';
 
 function EmployeeSetup() {
   const [searchParams] = useSearchParams();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,7 @@ function EmployeeSetup() {
     setLoading(true);
 
     try {
-      const response = await employeeAPI.setupAccount(token, employeeId, password);
+      const response = await employeeAPI.setupAccount(token, employeeId, password, username);
       if (response.success) {
         setMessage('Account set up successfully! Redirecting to login...');
         setTimeout(() => {
@@ -78,6 +79,19 @@ function EmployeeSetup() {
         <p className="subtitle">Welcome to Employee Task Management</p>
 
         <form onSubmit={handleSetup}>
+        <div className="form-group">
+            <label>Create Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              required
+              disabled={loading}
+              minLength="4"
+            />
+            <small>Minimum 6 characters</small>
+          </div>
           <div className="form-group">
             <label>Create Password</label>
             <input

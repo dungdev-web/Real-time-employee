@@ -4,14 +4,44 @@ import { employeeAPI } from "../../services/api";
 import "../../css/OwnerLogin.scss";
 
 function EmployeeLogin() {
-  const [step, setStep] = useState(1);
+  const [loginMethod, setLoginMethod] = useState("credentials"); // credentials or email
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
+  // ✅ Login bằng Username + Password
+  const handleCredentialsLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await employeeAPI.login(username, password);
+
+      if (response.status) {
+        localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("userType", "employee");
+        localStorage.setItem("employeeId", response.data.employeeId);
+        localStorage.setItem("employeeData", JSON.stringify(response.data));
+
+        navigate("/employee/dashboard");
+      } else {
+        setError(response.error || "Login failed");
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Login bằng Email + Access Code - Bước 1: Gửi code
   const handleSendCode = async (e) => {
     e.preventDefault();
     setError("");
@@ -19,11 +49,9 @@ function EmployeeLogin() {
     setLoading(true);
 
     try {
-      // ✅ Send email to get access code
       const response = await employeeAPI.loginEmail(email);
       if (response.success) {
         sessionStorage.setItem("loginEmail", email);
-
         setMessage("Access code sent to your email!");
         setStep(2);
       } else {
@@ -36,6 +64,7 @@ function EmployeeLogin() {
     }
   };
 
+  // ✅ Login bằng Email + Access Code - Bước 2: Verify code
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     setError("");
@@ -53,19 +82,17 @@ function EmployeeLogin() {
 
       const response = await employeeAPI.validateAccessCode(
         loginEmail,
-        accessCode,
+        accessCode
       );
 
       if (response.success) {
         localStorage.setItem("userType", "employee");
         localStorage.setItem("email", loginEmail);
-        localStorage.setItem("ownerId", response.employee.ownerId);
         localStorage.setItem("employeeId", response.employee.employeeId);
         localStorage.setItem("employeeData", JSON.stringify(response.employee));
+        localStorage.setItem("authToken", response.employee.token); // ✅ Lưu token nếu có
 
         sessionStorage.removeItem("loginEmail");
-
-        
         navigate("/employee/dashboard");
       } else {
         setError(response.error || "Invalid access code");
@@ -83,9 +110,15 @@ function EmployeeLogin() {
     setMessage("");
   };
 
+  const handleSwitchMethod = () => {
+    setLoginMethod(loginMethod === "credentials" ? "email" : "credentials");
+    setError("");
+    setMessage("");
+    setStep(1);
+  };
+
   return (
     <div className="login-container">
-      {/* Animated background elements */}
       <div className="bg-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
@@ -93,7 +126,6 @@ function EmployeeLogin() {
       </div>
 
       <div className="login-box">
-        {/* Header with icon */}
         <div className="login-header">
           <div className="icon-wrapper">
             <svg
@@ -122,167 +154,51 @@ function EmployeeLogin() {
           <p className="subtitle">Employee Task Management System</p>
         </div>
 
-        {/* Progress indicator */}
-        <div className="progress-steps">
-          <div className={`step ${step >= 1 ? "active" : ""}`}>
-            <div className="step-number">1</div>
-            <span>Email</span>
-          </div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 2 ? "active" : ""}`}>
-            <div className="step-number">2</div>
-            <span>Verify</span>
-          </div>
+        {/* ✅ TAB để chọn phương pháp login */}
+        <div className="login-tabs">
+          <button
+            className={`tab ${loginMethod === "credentials" ? "active" : ""}`}
+            onClick={() => handleSwitchMethod()}
+            disabled={loginMethod === "credentials"}
+          >
+            Username & Password
+          </button>
+          <button
+            className={`tab ${loginMethod === "email" ? "active" : ""}`}
+            onClick={() => handleSwitchMethod()}
+            disabled={loginMethod === "email"}
+          >
+            Email & Code
+          </button>
         </div>
 
-        {step === 1 ? (
-          <form onSubmit={handleSendCode} className="login-form">
+        {/* ✅ PHƯƠNG PHÁP 1: Username + Password */}
+        {loginMethod === "credentials" && (
+          <form onSubmit={handleCredentialsLogin} className="login-form">
             <div className="form-group">
-              <label>
-                <svg className="input-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M22 6L12 13L2 6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@company.com"
-                required
-                disabled={loading}
-              />
-              <small>Enter your work email address</small>
-            </div>
-
-            {error && (
-              <div className="error-message">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <path
-                    d="M12 8V12"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="12" cy="16" r="1" fill="currentColor" />
-                </svg>
-                {error}
-              </div>
-            )}
-
-            {message && (
-              <div className="success-message">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M22 11.08V12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C15.3 2 18.23 3.58 20 6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M22 4L12 14.01L9 11.01"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {message}
-              </div>
-            )}
-            <div className="button-container">
-              <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M22 2L11 13"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M22 2L15 22L11 13L2 9L22 2Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Send Access Code
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyCode} className="login-form">
-            {/* ✅ Show which email we're verifying */}
-            <div className="form-group">
-              <p className="email-display">
-                Verifying:{" "}
-                <strong>{sessionStorage.getItem("loginEmail")}</strong>
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label>
-                <svg className="input-icon" viewBox="0 0 24 24" fill="none">
-                  <rect
-                    x="3"
-                    y="11"
-                    width="18"
-                    height="11"
-                    rx="2"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <path
-                    d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                Access Code
-              </label>
+              <label>Username</label>
               <input
                 type="text"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                placeholder="Enter 6-digit code"
-                maxLength="6"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
                 required
                 disabled={loading}
-                className="code-input"
+                minLength="4"
               />
-              <small>Check your email for the access code</small>
+            </div>
+
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                disabled={loading}
+                minLength="6"
+              />
             </div>
 
             {error && (
@@ -306,15 +222,67 @@ function EmployeeLogin() {
                 {error}
               </div>
             )}
-            <div className="button-container" style={{ gap: "10px" }}>
-              <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Verifying...
-                  </>
-                ) : (
-                  <>
+
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+        )}
+
+        {/* ✅ PHƯƠNG PHÁP 2: Email + Access Code */}
+        {loginMethod === "email" && (
+          <>
+            {step === 1 ? (
+              <form onSubmit={handleSendCode} className="login-form">
+                <div className="progress-steps">
+                  <div className="step active">
+                    <div className="step-number">1</div>
+                    <span>Email</span>
+                  </div>
+                  <div className="step-line"></div>
+                  <div className="step">
+                    <div className="step-number">2</div>
+                    <span>Verify</span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@company.com"
+                    required
+                    disabled={loading}
+                  />
+                  <small>Enter your work email address</small>
+                </div>
+
+                {error && (
+                  <div className="error-message">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M12 8V12"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="16" r="1" fill="currentColor" />
+                    </svg>
+                    {error}
+                  </div>
+                )}
+
+                {message && (
+                  <div className="success-message">
                     <svg viewBox="0 0 24 24" fill="none">
                       <path
                         d="M22 11.08V12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C15.3 2 18.23 3.58 20 6"
@@ -330,37 +298,104 @@ function EmployeeLogin() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                    Verify Code
-                  </>
+                    {message}
+                  </div>
                 )}
-              </button>
 
-              <button
-                type="button"
-                onClick={handleBackToEmail}
-                className="btn-secondary"
-                disabled={loading}
-              >
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M19 12H5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary"
+                >
+                  {loading ? "Sending..." : "Send Access Code"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyCode} className="login-form">
+                <div className="progress-steps">
+                  <div className="step active">
+                    <div className="step-number">1</div>
+                    <span>Email</span>
+                  </div>
+                  <div className="step-line"></div>
+                  <div className="step active">
+                    <div className="step-number">2</div>
+                    <span>Verify</span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <p className="email-display">
+                    Verifying:{" "}
+                    <strong>{sessionStorage.getItem("loginEmail")}</strong>
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label>Access Code</label>
+                  <input
+                    type="text"
+                    value={accessCode}
+                    onChange={(e) =>
+                      setAccessCode(e.target.value.toUpperCase())
+                    }
+                    placeholder="Enter 6-digit code"
+                    maxLength="6"
+                    required
+                    disabled={loading}
+                    className="code-input"
                   />
-                  <path
-                    d="M12 19L5 12L12 5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Back
-              </button>
-            </div>
-          </form>
+                  <small>Check your email for the access code</small>
+                </div>
+
+                {error && (
+                  <div className="error-message">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M12 8V12"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="16" r="1" fill="currentColor" />
+                    </svg>
+                    {error}
+                  </div>
+                )}
+
+                <div
+                  className="button-container"
+                  style={{ gap: "10px", display: "flex" }}
+                >
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary"
+                    style={{ flex: 1 }}
+                  >
+                    {loading ? "Verifying..." : "Verify Code"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleBackToEmail}
+                    className="btn-secondary"
+                    disabled={loading}
+                    style={{ flex: 1 }}
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            )}
+          </>
         )}
 
         <div className="login-footer">
@@ -370,6 +405,7 @@ function EmployeeLogin() {
           <p>
             Manager? <a href="/owner/login">Login here →</a>
           </p>
+         
         </div>
       </div>
     </div>
