@@ -74,17 +74,20 @@ class SocketService {
       return;
     }
 
-    // Remove old listener if exists
-    if (this.listeners.has(eventName)) {
-      const oldCallback = this.listeners.get(eventName);
-      this.socket.off(eventName, oldCallback);
-      console.log(`Removed old ${eventName} listener`);
+    if (!this.listeners.has(eventName)) {
+      this.listeners.set(eventName, new Set());
     }
 
-    // Add new listener
-    this.socket.on(eventName, callback);
-    this.listeners.set(eventName, callback);
-    console.log(`Registered ${eventName} listener`);
+    const callbacks = this.listeners.get(eventName);
+
+    // Prevent duplicate same function
+    if (!callbacks.has(callback)) {
+      this.socket.on(eventName, callback);
+      callbacks.add(callback);
+      console.log(
+        `Registered ${eventName} listener (total: ${callbacks.size})`,
+      );
+    }
   }
 
   // Keep old methods for backward compatibility
@@ -119,16 +122,29 @@ class SocketService {
   /**
    * Remove a specific listener
    */
-  removeListener(eventName) {
-    if (this.listeners.has(eventName)) {
-      const callback = this.listeners.get(eventName);
-      if (this.socket) {
-        this.socket.off(eventName, callback);
-      }
-      this.listeners.delete(eventName);
-      console.log(`Removed ${eventName} listener`);
+  removeListener(eventName, callback) {
+    if (!this.listeners.has(eventName)) return;
+
+    const callbacks = this.listeners.get(eventName);
+
+    if (callback) {
+      this.socket.off(eventName, callback);
+      callbacks.delete(callback);
+    } else {
+      // Remove all callbacks for this event
+      callbacks.forEach((cb) => {
+        this.socket.off(eventName, cb);
+      });
+      callbacks.clear();
     }
+
+    if (callbacks.size === 0) {
+      this.listeners.delete(eventName);
+    }
+
+    console.log(`Removed ${eventName} listener(s)`);
   }
+
   emit(event, payload) {
     if (this.socket) {
       this.socket.emit(event, payload);
@@ -139,10 +155,12 @@ class SocketService {
    * Remove all listeners
    */
   removeAllListeners() {
-    this.listeners.forEach((callback, eventName) => {
-      if (this.socket) {
-        this.socket.off(eventName, callback);
-      }
+    this.listeners.forEach((callbacks, eventName) => {
+      callbacks.forEach((cb) => {
+        if (this.socket) {
+          this.socket.off(eventName, cb);
+        }
+      });
     });
     this.listeners.clear();
     console.log("Removed all listeners");

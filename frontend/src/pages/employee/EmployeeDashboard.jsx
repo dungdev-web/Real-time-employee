@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { employeeAPI } from '../../services/api';
-import Chat from '../../components/Chat';
 import '../../css/EmployeeDashboard.scss';
 
 function EmployeeDashboard() {
   const [employee, setEmployee] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -164,12 +162,7 @@ if (!ownerId || ownerId === 'owner') {
           </div>
         </div>
         <div className="header-actions">
-          <button onClick={() => setShowChat(!showChat)} className="chat-toggle-button">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {showChat ? 'Hide Chat' : 'Chat'}
-          </button>
+          
           <button onClick={handleLogout} className="logout-button">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -417,31 +410,7 @@ if (!ownerId || ownerId === 'owner') {
           </div>
         </div>
 
-        {/* Chat Section */}
-        {showChat && (
-          <div className="chat-section glass-card">
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <h3>Chat with Manager</h3>
-              </div>
-              <button onClick={() => setShowChat(false)} className="close-chat-button">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            <Chat
-              currentUserId={employee.employeeId}
-              currentUserType="employee"
-              otherUserId={ownerId}
-              otherUserName="Manager"
-            />
-          </div>
-        )}
+       
       </div>
     </div>
   );

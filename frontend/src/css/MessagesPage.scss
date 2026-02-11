@@ -59,3 +59,39 @@
     }
   }
 }
+// CSS cho unread badges
+.unread-badge {
+  background: #ff4444;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.conversation-item {
+  position: relative;
+  
+  .unread-count {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+}
+
+// Toast custom styles
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}

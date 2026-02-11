@@ -19,37 +19,50 @@ import OwnerLayout from "./layout/OwnerLayout";
 import { ChatProvider } from "./context/ChatContext";
 import EmployeeLayout from "./layout/EmployeeLayout";
 import EmployeeTask from "./pages/employee/EmployeeTask";
+import { ToastContainer } from "react-toastify";
 function App() {
   return (
-    <ChatProvider ownerId={localStorage.getItem("ownerId")}>
-      <Router>
-        <Routes>
-          {/* Default */}
-          <Route path="/" element={<Navigate to="/owner/login" replace />} />
+    <>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="white"
+      />
+      <ChatProvider ownerId={localStorage.getItem("ownerId")}>
+        <Router>
+          <Routes>
+            {/* Default */}
+            <Route path="/" element={<Navigate to="/owner/login" replace />} />
 
-          {/* Login riêng */}
-          <Route path="/owner/login" element={<OwnerLogin />} />
-          <Route path="/employee/login" element={<EmployeeLogin />} />
-          <Route path="/employee/setup" element={<EmployeeSetup />} />
-          {/* OWNER dùng chung sidebar */}
-          <Route path="/owner" element={<OwnerLayout />}>
-            <Route path="dashboard" element={<OwnerDashboard />} />
-            <Route path="message" element={<OwnerMessage />} />
-            <Route path="employee" element={<OwnerManageEmployee />} />
-            <Route path="task" element={<OwnerManageTask />} />
-          </Route>
+            {/* Login riêng */}
+            <Route path="/owner/login" element={<OwnerLogin />} />
+            <Route path="/employee/login" element={<EmployeeLogin />} />
+            <Route path="/employee/setup" element={<EmployeeSetup />} />
+            {/* OWNER dùng chung sidebar */}
+            <Route path="/owner" element={<OwnerLayout />}>
+              <Route path="dashboard" element={<OwnerDashboard />} />
+              <Route path="message" element={<OwnerMessage />} />
+              <Route path="employee" element={<OwnerManageEmployee />} />
+              <Route path="task" element={<OwnerManageTask />} />
+            </Route>
 
-          {/* Employee */}
-          <Route path="/employee" element={<EmployeeLayout />}>
-            <Route path="dashboard" element={<EmployeeDashboard />} />
-            <Route path="task" element={<EmployeeTask />} />
-            <Route path="message" element={<EmployeeMessage />} />
-          </Route>
+            {/* Employee */}
+            <Route path="/employee" element={<EmployeeLayout />}>
+              <Route path="dashboard" element={<EmployeeDashboard />} />
+              <Route path="task" element={<EmployeeTask />} />
+              <Route path="message" element={<EmployeeMessage />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </ChatProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </ChatProvider>
+    </>
   );
 }
 
