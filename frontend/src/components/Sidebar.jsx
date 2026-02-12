@@ -10,7 +10,7 @@ function Sidebar({ menuItems, messagePath }) {
   const { conversations, selectConversation, selectedConversation, unreadMap } =
     useChat();
 
-  const formatTime = (timestamp) => {
+  const formatTimeSidebar = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
     const now = new Date();
@@ -97,7 +97,7 @@ function Sidebar({ menuItems, messagePath }) {
 
                       {conv.lastMessage && (
                         <span className="conversation-time">
-                          {formatTime(conv.lastMessage.timestamp)}
+                          {formatTimeSidebar(conv.lastMessage.timestamp)}
                         </span>
                       )}
                     </div>

@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { formatDate,formatTime } from "../lib/format";
 import socketService from "../lib/socket";
 import "../css/Chat.scss";
 import { chatAPI } from "../services/api";
@@ -20,34 +27,13 @@ function Chat({
   const typingTimeoutRef = useRef(null);
   const hasJoinedRoom = useRef(false);
 
-  // ===== SCROLL TO BOTTOM =====
   const scrollToBottom = () => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
-  // ===== FORMAT FUNCTIONS =====
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, "0")}:${date
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
-    return date.toLocaleDateString();
-  };
-
-  const groupMessagesByDate = () => {
+  const messageGroups = useMemo(() => {
     const groups = {};
     messages.forEach((msg) => {
       const key = formatDate(msg.timestamp);
@@ -55,7 +41,7 @@ function Chat({
       groups[key].push(msg);
     });
     return groups;
-  };
+  }, [messages]); // Chỉ tính toán lại khi mảng messages thay đổi
 
   useEffect(() => {
     const socket = socketService.connect();
@@ -83,11 +69,11 @@ function Chat({
 
   useEffect(() => {
     if (!conversationId || !currentUserId || !otherUserId) {
-      console.warn("⚠️ Missing required IDs:", {
-        conversationId,
-        currentUserId,
-        otherUserId,
-      });
+      // console.warn("⚠️ Missing required IDs:", {
+      //   conversationId,
+      //   currentUserId,
+      //   otherUserId,
+      // });
       return;
     }
     // JOIN SOCKET ROOM FIRST
@@ -122,91 +108,89 @@ function Chat({
   }, [conversationId, currentUserId, currentUserType, otherUserId]);
 
   useEffect(() => {
-  if (!conversationId) return;
+    if (!conversationId) return;
+    // ✅ LOAD MESSAGES HANDLER
+    const handleLoadMessages = (data) => {
+      if (data && data.length > 0) {
+        setMessages(data);
+        scrollToBottom();
+      }
+    };
 
-  const handleNewMessage = (msg) => {
+    socketService.registerListener("new-message", handleNewMessage);
+    socketService.registerListener("user-typing", handleUserTyping);
+    socketService.registerListener("user-status-changed", handleUserStatus);
+    socketService.registerListener("load-messages", handleLoadMessages);
+
+    return () => {
+      socketService.removeListener("new-message");
+      socketService.removeListener("user-typing");
+      socketService.removeListener("user-status-changed");
+      socketService.removeListener("load-messages");
+    };
+  }, [conversationId, otherUserId]);
+  const handleNewMessage = useCallback((msg) => {
     setMessages((prev) => {
       const exists = prev.find((m) => m.messageId === msg.messageId);
-      if (exists) {
-        return prev;
-      }
-      const updated = [...prev, msg];
-      setTimeout(() => scrollToBottom(), 100);
-      return updated;
+      if (exists) return prev;
+      return [...prev, msg];
     });
-  };
+    setTimeout(() => scrollToBottom(), 100);
+  }, []); // Không phụ thuộc vào state nào vì dùng setMessages dạng callback
 
-  // ✅ TYPING HANDLER
-  const handleUserTyping = (data) => {
-    if (String(data.userId) === String(otherUserId)) {
-      setIsTyping(data.typing);
-    }
-  };
+  const handleUserTyping = useCallback(
+    (data) => {
+      if (String(data.userId) === String(otherUserId)) {
+        setIsTyping(data.typing);
+      }
+    },
+    [otherUserId],
+  );
 
-  // ✅ USER STATUS HANDLER - Cải tiến
-  const handleUserStatus = (data) => {
-    console.log("📊 User status changed:", data.userId, data.status);
-    
-    if (String(data.userId) === String(otherUserId)) {
-      setOtherUserOnline(data.status === "online");
-    }
-  };
-
-  // ✅ LOAD MESSAGES HANDLER
-  const handleLoadMessages = (data) => {
-    if (data && data.length > 0) {
-      setMessages(data);
-      scrollToBottom();
-    }
-  };
-
-  socketService.registerListener("new-message", handleNewMessage);
-  socketService.registerListener("user-typing", handleUserTyping);
-  socketService.registerListener("user-status-changed", handleUserStatus);
-  socketService.registerListener("load-messages", handleLoadMessages);
-
-  return () => {
-    socketService.removeListener("new-message");
-    socketService.removeListener("user-typing");
-    socketService.removeListener("user-status-changed");
-    socketService.removeListener("load-messages");
-  };
-}, [conversationId, otherUserId]);
-
+  const handleUserStatus = useCallback(
+    (data) => {
+      if (String(data.userId) === String(otherUserId)) {
+        setOtherUserOnline(data.status === "online");
+      }
+    },
+    [otherUserId],
+  );
   // ===== SEND MESSAGE =====
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !connected) return;
+  const handleSendMessage = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (!newMessage.trim() || !connected) return;
 
-    socketService.sendMessage(
-      currentUserId,
-      currentUserType,
-      otherUserId,
-      newMessage.trim(),
-    );
+      socketService.sendMessage(
+        currentUserId,
+        currentUserType,
+        otherUserId,
+        newMessage.trim(),
+      );
 
-    setNewMessage("");
-
-    // Stop typing indicator
-    socketService.sendTyping(currentUserId, false);
-  };
-
-  // ===== TYPING INDICATOR =====
-  const handleTyping = (e) => {
-    setNewMessage(e.target.value);
-
-    socketService.sendTyping(currentUserId, true);
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
+      setNewMessage("");
       socketService.sendTyping(currentUserId, false);
-    }, 1000);
-  };
+    },
+    [newMessage, connected, currentUserId, currentUserType, otherUserId],
+  );
 
-  const messageGroups = groupMessagesByDate();
+  const handleTyping = useCallback(
+    (e) => {
+      setNewMessage(e.target.value);
+      socketService.sendTyping(currentUserId, true);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socketService.sendTyping(currentUserId, false);
+      }, 1000);
+    },
+    [currentUserId],
+  );
+
+  // const messageGroups = groupMessagesByDate();
 
   return (
     <div className="chat-container">
