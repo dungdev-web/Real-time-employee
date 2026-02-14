@@ -1,38 +1,58 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Bell, User } from "lucide-react";
+import { useEffect } from "react";
 import "../css/Sidebar.scss";
 import { useChat } from "../context/ChatContext";
 
-function Sidebar({ menuItems, messagePath }) {
+function Sidebar({
+  isOpen,
+  setIsOpen,
+  isMobile,
+  menuItems,
+  messagePath,
+  users = [], 
+  userType = null,
+}) {
   const navigate = useNavigate();
+
   const location = useLocation();
 
   const { conversations, selectConversation, selectedConversation, unreadMap } =
     useChat();
 
-  const formatTimeSidebar = (timestamp) => {
-    if (!timestamp) return "";
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-
-    if (hours < 1) {
-      const minutes = Math.floor(diff / (1000 * 60));
-      return minutes < 1 ? "Just now" : `${minutes}m ago`;
-    }
-
-    if (hours < 24) return `${hours}h ago`;
-
-    const days = Math.floor(hours / 24);
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d ago`;
-
-    return date.toLocaleDateString();
+  const closeIfMobile = () => {
+    if (isMobile) setIsOpen(false);
   };
 
+  // ✅ Chỉ filter nếu có users và đang ở owner mode
+  const validConversations =
+    users.length > 0 && userType === "owner"
+      ? conversations.filter((conv) => {
+          return users.some(
+            (user) =>
+              user.employeeId === conv.otherUserId ||
+              user.name === conv.otherUserName,
+          );
+        })
+      : conversations;
+
+  // ✅ Auto deselect nếu user bị xóa (chỉ với owner)
+  useEffect(() => {
+    if (userType === "owner" && selectedConversation && users.length > 0) {
+      const stillExists = users.some(
+        (user) =>
+          user.employeeId === selectedConversation.otherUserId ||
+          user.name === selectedConversation.otherUserName,
+      );
+
+      if (!stillExists) {
+        selectConversation(null);
+      }
+    }
+  }, [users, selectedConversation, selectConversation, userType]);
+
   return (
-    <div className="message-sidebar">
+    <div className={`message-sidebar ${isMobile && isOpen ? "open" : ""}`}>
       <div className="sidebar-logo">
         <div className="logo-placeholder" />
       </div>
@@ -45,7 +65,10 @@ function Sidebar({ menuItems, messagePath }) {
             className={`menu-item ${
               location.pathname === item.path ? "active" : ""
             }`}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              navigate(item.path);
+              closeIfMobile();
+            }}
           >
             {item.label}
           </div>
@@ -68,18 +91,22 @@ function Sidebar({ menuItems, messagePath }) {
           </div>
 
           <div className="conversations-list">
-            {!Array.isArray(conversations) || conversations.length === 0 ? (
+            {!Array.isArray(validConversations) ||
+            validConversations.length === 0 ? (
               <div className="empty-conversations">
                 <p>No conversations yet</p>
               </div>
             ) : (
-              conversations.map((conv) => (
+              validConversations.map((conv) => (
                 <div
                   key={conv.id}
                   className={`conversation-item ${
                     selectedConversation?.id === conv.id ? "active" : ""
                   }`}
-                  onClick={() => selectConversation(conv)}
+                  onClick={() => {
+                    selectConversation(conv);
+                    closeIfMobile();
+                  }}
                 >
                   <div className="conversation-avatar">
                     <User size={20} />
@@ -89,23 +116,16 @@ function Sidebar({ menuItems, messagePath }) {
                     <div className="conversation-header">
                       <span className="conversation-name">
                         {conv.otherUserName}
-
                         {unreadMap?.[conv.id] && (
                           <span className="unread-dot" />
                         )}
                       </span>
-
-                      {conv.lastMessage && (
-                        <span className="conversation-time">
-                          {formatTimeSidebar(conv.lastMessage.timestamp)}
-                        </span>
-                      )}
                     </div>
 
                     <div className="conversation-preview">
-                        <p className="last-message">
-                          {conv.lastMessage?.message || "No messages yet"}
-                        </p>
+                      <p className="last-message">
+                        {conv.lastMessage?.message || "No messages yet"}
+                      </p>
                     </div>
                   </div>
                 </div>

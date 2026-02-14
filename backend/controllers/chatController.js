@@ -6,40 +6,42 @@ const { getDatabase } = require("../config/firebase");
 const getUserName = async (userId, db) => {
   try {
     // Check if it's an employee (starts with 'emp_')
-    if (userId.startsWith('emp_')) {
-      const employeeSnapshot = await db.ref(`employees/${userId}`).once('value');
+    if (userId.startsWith("emp_")) {
+      const employeeSnapshot = await db
+        .ref(`employees/${userId}`)
+        .once("value");
       const employee = employeeSnapshot.val();
-      
+
       if (employee && employee.name) {
         return employee.name;
       }
-      
-      return 'Employee'; // Fallback
-    } 
+
+      return "Employee"; // Fallback
+    }
     // Otherwise it's an owner (phone number format)
     else {
-      const ownerSnapshot = await db.ref(`owners/${userId}`).once('value');
+      const ownerSnapshot = await db.ref(`owners/${userId}`).once("value");
       const owner = ownerSnapshot.val();
-      
-      if (owner && owner.name) {
-        return owner.name;
+
+      if (owner) {
+        return owner.name || owner.phoneNumber || "Manager";
       }
-      
+
       // If no name found, try to find owner by phone
-      const ownersSnapshot = await db.ref('owners').once('value');
+      const ownersSnapshot = await db.ref("owners").once("value");
       const owners = ownersSnapshot.val() || {};
-      
+
       for (const [ownerId, ownerData] of Object.entries(owners)) {
         if (ownerData.phone === userId || ownerData.email === userId) {
-          return ownerData.name || 'Manager';
+          return ownerData.name || "Manager";
         }
       }
-      
-      return 'Manager'; // Fallback
+
+      return "Manager"; // Fallback
     }
   } catch (error) {
     console.error(`   ❌ Error getting name for ${userId}:`, error);
-    return userId.startsWith('emp_') ? 'Employee' : 'Manager';
+    return userId.startsWith("emp_") ? "Employee" : "Manager";
   }
 };
 
@@ -57,16 +59,11 @@ const getConversations = async (req, res) => {
         error: "userId is required",
       });
     }
-
-    console.log("📡 getConversations for userId:", userId);
-
     const db = getDatabase();
     const snapshot = await db.ref("messages").once("value");
     const data = snapshot.val() || {};
+    console.log("dât", data);
 
-    console.log("📦 Total conversations in DB:", Object.keys(data).length);
-
-    // First, get all conversations without names
     const conversationsWithoutNames = Object.entries(data)
       .filter(([conversationId]) => {
         const isMatch = conversationId.includes(userId);
@@ -104,7 +101,9 @@ const getConversations = async (req, res) => {
             }
           }
         } else {
-          console.error(`   ❌ Unexpected conversation ID format: ${conversationId}`);
+          console.error(
+            `   ❌ Unexpected conversation ID format: ${conversationId}`,
+          );
           otherUserId = conversationId.replace(userId, "").replace("_", "");
         }
 
@@ -120,22 +119,26 @@ const getConversations = async (req, res) => {
       .sort((a, b) => b.lastMessage.timestamp - a.lastMessage.timestamp);
 
     // ✅ Now fetch names for all users
-    console.log(`🔍 Fetching names for ${conversationsWithoutNames.length} conversations...`);
-    
+    console.log(
+      `🔍 Fetching names for ${conversationsWithoutNames.length} conversations...`,
+    );
+
     const conversationsWithNames = await Promise.all(
       conversationsWithoutNames.map(async (conv) => {
         const otherUserName = await getUserName(conv.otherUserId, db);
-        
+
         console.log(`   👤 ${conv.otherUserId} → ${otherUserName}`);
-        
+
         return {
           ...conv,
           otherUserName, // ✅ Added user name
         };
-      })
+      }),
     );
 
-    console.log(`✅ Returning ${conversationsWithNames.length} conversations with names`);
+    console.log(
+      `✅ Returning ${conversationsWithNames.length} conversations with names`,
+    );
     conversationsWithNames.forEach((conv) => {
       console.log(`   - ${conv.id}`);
       console.log(`     Other: ${conv.otherUserId} (${conv.otherUserName})`);
@@ -169,13 +172,11 @@ const getMessages = async (req, res) => {
     console.log("📨 getMessages for conversation:", conversationId);
 
     const db = getDatabase();
-    const snapshot = await db
-      .ref(`messages/${conversationId}`)
-      .once("value");
+    const snapshot = await db.ref(`messages/${conversationId}`).once("value");
 
     const messages = snapshot.val() || {};
     const messageArray = Object.values(messages).sort(
-      (a, b) => a.timestamp - b.timestamp
+      (a, b) => a.timestamp - b.timestamp,
     );
 
     console.log(`✅ Returning ${messageArray.length} messages`);

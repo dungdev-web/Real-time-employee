@@ -5,7 +5,7 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
 class SocketService {
   constructor() {
     this.socket = null;
-    this.listeners = new Map(); // Use Map to track listeners by event name
+    this.listeners = new Map(); 
   }
 
   connect() {
@@ -44,7 +44,7 @@ class SocketService {
     if (this.socket) {
       this.socket.emit("join-conversation", payload);
     }
-    console.log("JOIN:", payload);
+    // console.log("JOIN:", payload);
   }
 
   leaveConversation(conversationId) {
@@ -80,7 +80,6 @@ class SocketService {
 
     const callbacks = this.listeners.get(eventName);
 
-    // Prevent duplicate same function
     if (!callbacks.has(callback)) {
       this.socket.on(eventName, callback);
       callbacks.add(callback);
@@ -90,7 +89,6 @@ class SocketService {
     }
   }
 
-  // Keep old methods for backward compatibility
   onLoadMessages(callback) {
     this.registerListener("load-messages", callback);
   }

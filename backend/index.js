@@ -165,10 +165,8 @@ io.on("connection", (socket) => {
         const messageArray = Object.values(messages).sort(
           (a, b) => a.timestamp - b.timestamp,
         );
-        // console.log(`📨 Loaded ${messageArray.length} messages for ${conversationId}`);
         socket.emit("load-messages", messageArray);
       } else {
-        // console.log(`📨 No messages found for ${conversationId}`);
         socket.emit("load-messages", []);
       }
     } catch (error) {
@@ -216,7 +214,6 @@ io.on("connection", (socket) => {
             timestamp: Date.now(),
           });
         }
-        console.log("🔔 Emit notification to:", receiverId);
 
         // ✅ EMIT SENDER STATUS (CẬP NHẬT STATUS NGƯỜI GỬI)
         io.emit("user-status-changed", {
@@ -283,7 +280,6 @@ io.on("connection", (socket) => {
             conversationId,
             userId,
           });
-          // console.log(`✅ Marked ${Object.keys(updates).length} messages as read in ${conversationId}`);
         }
       }
     } catch (error) {
@@ -359,7 +355,7 @@ server.listen(PORT, () => {
 ║  - http://localhost:${PORT}/api/owner                    ║
 ║  - http://localhost:${PORT}/api/employee                 ║
 ║  - http://localhost:${PORT}/api/chat                     ║
-║  - http://localhost:${PORT}/health                       ║
+║                   ║
 ║                                                       ║
 ║  Socket.io: Connected ✅                              ║
 ║  Firebase: Connected ✅                               ║

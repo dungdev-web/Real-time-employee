@@ -45,32 +45,32 @@ function OwnerMessage() {
     );
   }
 
-  if (!employeeId.startsWith('emp_')) {
-    console.error("Invalid employeeId format:", employeeId);
-    console.error("Expected: emp_XXXXXXXXXX_XXXXXXXX");
-    console.error("Got:", employeeId);
+  // if (!employeeId.startsWith('emp_')) {
+  //   console.error("Invalid employeeId format:", employeeId);
+  //   console.error("Expected: emp_XXXXXXXXXX_XXXXXXXX");
+  //   console.error("Got:", employeeId);
     
-    const conversationId = selectedConversation?.id;
-    if (conversationId) {
-      const [id1, id2] = conversationId.split('_');
-      const correctEmployeeId = id1.startsWith('emp_') ? id1 : id2;
+  //   const conversationId = selectedConversation?.id;
+  //   if (conversationId) {
+  //     const [id1, id2] = conversationId.split('_');
+  //     const correctEmployeeId = id1.startsWith('emp_') ? id1 : id2;
       
-      console.log("Attempting to fix employeeId:");
-      console.log("Conversation ID:", conversationId);
-      console.log("Extracted:", correctEmployeeId);
+  //     console.log("Attempting to fix employeeId:");
+  //     console.log("Conversation ID:", conversationId);
+  //     console.log("Extracted:", correctEmployeeId);
       
-      return (
-        <div className="error-state">
-          <h3>Invalid Employee ID</h3>
-          <p>Expected format: emp_XXXXXXXXXX_XXXXXXXX</p>
-          <p>Received: {employeeId}</p>
-          <p>Conversation ID: {conversationId}</p>
-          <p>Trying to use: {correctEmployeeId}</p>
-          <button onClick={() => window.location.reload()}>Refresh and try again</button>
-        </div>
-      );
-    }
-  }
+  //     return (
+  //       <div className="error-state">
+  //         <h3>Invalid Employee ID</h3>
+  //         <p>Expected format: emp_XXXXXXXXXX_XXXXXXXX</p>
+  //         <p>Received: {employeeId}</p>
+  //         <p>Conversation ID: {conversationId}</p>
+  //         <p>Trying to use: {correctEmployeeId}</p>
+  //         <button onClick={() => window.location.reload()}>Refresh and try again</button>
+  //       </div>
+  //     );
+  //   }
+  // }
 
   return (
     <Chat

@@ -1,8 +1,6 @@
-// src/services/notificationService.js
 import { toast } from 'react-toastify';
 
 class NotificationService {
-  // Play notification sound
   playSound() {
     try {
       const audio = new Audio('/notification.mp3');
@@ -13,10 +11,7 @@ class NotificationService {
     }
   }
 
-  // Show toast notification
-  showToast(message, options = {}) {
-    console.log('📢 Showing toast:', message); // ✅ THÊM LOG
-    
+  showToast(message, options = {}) {    
     toast.info(message, {
       position: 'top-right',
       autoClose: 3000,
