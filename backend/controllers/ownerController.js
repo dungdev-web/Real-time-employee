@@ -17,10 +17,16 @@ const {
  * POST /api/owner/create-access-code
  * Generate and send access code to owner's phone
  */
+const Owner = process.env.OwnerId;
 const createNewAccessCode = async (req, res) => {
   try {
     const { phoneNumber } = req.body;
-
+    if(phoneNumber != Owner){
+      return res.status(500).json({
+        success:false,
+        error:"Owner has been create"
+      })
+    }
     if (!phoneNumber) {
       return res.status(400).json({
         success: false,

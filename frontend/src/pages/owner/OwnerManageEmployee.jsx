@@ -64,12 +64,14 @@ function OwnerManageEmployee() {
       setError('Owner ID not found. Please refresh the page.');
       return;
     }
+    setLoading(true);
 
     try {
       const response = await ownerAPI.createEmployee({
         ...formData,
         ownerId: ownerId
       });
+
 
       if (response.success) {
         setMessage('Employee added successfully! Setup email sent.');
@@ -103,7 +105,6 @@ function OwnerManageEmployee() {
   const getFilteredEmployees = () => {
     let filtered = employees;
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(emp =>
@@ -113,7 +114,6 @@ function OwnerManageEmployee() {
       );
     }
 
-    // Department filter
     if (filterDept !== 'all') {
       filtered = filtered.filter(emp => emp.department === filterDept);
     }
@@ -143,8 +143,8 @@ function OwnerManageEmployee() {
   const filteredEmployees = getFilteredEmployees();
   const sortedEmployees = getSortedEmployees(filteredEmployees);
 
-  const activeEmployees = employees.filter(e => e.accountSetup).length;
-  const pendingEmployees = employees.filter(e => !e.accountSetup).length;
+  // const activeEmployees = employees.filter(e => e.accountSetup).length;
+  // const pendingEmployees = employees.filter(e => !e.accountSetup).length;
   const departments = [...new Set(employees.map(e => e.department))];
 
   if (loading) {
@@ -152,7 +152,7 @@ function OwnerManageEmployee() {
       <div className="manage-loading">
         <div className="loader">
           <div className="loader-spinner"></div>
-          <p>Loading employees...</p>
+          <p>Loading</p>
         </div>
       </div>
     );
@@ -207,7 +207,6 @@ function OwnerManageEmployee() {
 
       {/* Main Content */}
       <div className="manage-content">
-        {/* Stats Cards */}
         {/* <div className="stats-grid">
           <div className="stat-card total-employees">
             <div className="stat-icon">

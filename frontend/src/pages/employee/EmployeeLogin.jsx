@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { employeeAPI } from "../../services/api";
 import "../../css/OwnerLogin.scss";
+import { CircleUserRound, Mail } from "lucide-react";
 
 function EmployeeLogin() {
   const [loginMethod, setLoginMethod] = useState("credentials"); // credentials or email
@@ -15,7 +16,6 @@ function EmployeeLogin() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Login bằng Username + Password
   const handleCredentialsLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -41,7 +41,6 @@ function EmployeeLogin() {
     }
   };
 
-  // ✅ Login bằng Email + Access Code - Bước 1: Gửi code
   const handleSendCode = async (e) => {
     e.preventDefault();
     setError("");
@@ -64,7 +63,6 @@ function EmployeeLogin() {
     }
   };
 
-  // ✅ Login bằng Email + Access Code - Bước 2: Verify code
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     setError("");
@@ -82,7 +80,7 @@ function EmployeeLogin() {
 
       const response = await employeeAPI.validateAccessCode(
         loginEmail,
-        accessCode
+        accessCode,
       );
 
       if (response.success) {
@@ -90,7 +88,7 @@ function EmployeeLogin() {
         localStorage.setItem("email", loginEmail);
         localStorage.setItem("employeeId", response.employee.employeeId);
         localStorage.setItem("employeeData", JSON.stringify(response.employee));
-        localStorage.setItem("authToken", response.employee.token); // ✅ Lưu token nếu có
+        localStorage.setItem("authToken", response.employee.token);
 
         sessionStorage.removeItem("loginEmail");
         navigate("/employee/dashboard");
@@ -154,25 +152,23 @@ function EmployeeLogin() {
           <p className="subtitle">Employee Task Management System</p>
         </div>
 
-        {/* ✅ TAB để chọn phương pháp login */}
         <div className="login-tabs">
           <button
             className={`tab ${loginMethod === "credentials" ? "active" : ""}`}
             onClick={() => handleSwitchMethod()}
             disabled={loginMethod === "credentials"}
           >
-            Username & Password
+            <CircleUserRound />
           </button>
           <button
             className={`tab ${loginMethod === "email" ? "active" : ""}`}
             onClick={() => handleSwitchMethod()}
             disabled={loginMethod === "email"}
           >
-            Email & Code
+            <Mail />
           </button>
         </div>
 
-        {/* ✅ PHƯƠNG PHÁP 1: Username + Password */}
         {loginMethod === "credentials" && (
           <form onSubmit={handleCredentialsLogin} className="login-form">
             <div className="form-group">
@@ -229,7 +225,6 @@ function EmployeeLogin() {
           </form>
         )}
 
-        {/* ✅ PHƯƠNG PHÁP 2: Email + Access Code */}
         {loginMethod === "email" && (
           <>
             {step === 1 ? (
@@ -405,7 +400,6 @@ function EmployeeLogin() {
           <p>
             Manager? <a href="/owner/login">Login here →</a>
           </p>
-         
         </div>
       </div>
     </div>

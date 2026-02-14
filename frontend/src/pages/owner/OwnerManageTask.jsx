@@ -38,14 +38,12 @@ function OwnerManageTask() {
     try {
       setLoading(true);
 
-      // Load employees
       const empResponse = await ownerAPI.getAllEmployees();
       if (empResponse.success) {
         setEmployees(empResponse.employees || []);
         // console.log("dữ liệu:",empResponse.employees);
       }
 
-      // Load tasks - you'll need to add this API endpoint
       const taskRes = await employeeAPI.getAlllTasks();
       if (taskRes.success) {
         setTasks(taskRes.tasks || []);
@@ -77,17 +75,18 @@ function OwnerManageTask() {
     }
 
     try {
-      await employeeAPI.createTask(formData);
-
-      // For now, add to local state
-      const newTask = {
-        taskId: `task_${Date.now()}`,
-        ...formData,
-        createdAt: Date.now(),
-        createdBy: localStorage.getItem("ownerId"),
+      const taskData = {
+        employeeId: formData.assignedTo, 
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        dueDate: formData.dueDate,
+        status: formData.status,
       };
 
-      setTasks([newTask, ...tasks]);
+      await employeeAPI.createTask(taskData); 
+      await loadTasksAndEmployees(); 
+
       setMessage("Task created successfully!");
       setFormData({
         title: "",
@@ -119,18 +118,18 @@ function OwnerManageTask() {
     }
   };
 
-  const handleUpdateTask = async (taskId, updatedData) => {
-    try {
-      // await employeeAPI.updateTask(taskId, updatedData);
-      setTasks(
-        tasks.map((t) => (t.taskId === taskId ? { ...t, ...updatedData } : t)),
-      );
-      setMessage("Task updated successfully");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to update task");
-    }
-  };
+  const handleUpdateTask = async (taskId, employeeId) => {
+  try {
+    await employeeAPI.completeTask(employeeId, taskId);
+    
+    await loadTasksAndEmployees();
+    
+    setMessage("Task completed successfully");
+    setTimeout(() => setMessage(""), 3000);
+  } catch (err) {
+    setError(err.response?.data?.error || "Failed to complete task");
+  }
+};
 
   const getFilteredTasks = () => {
     let filtered = tasks;
@@ -147,7 +146,7 @@ function OwnerManageTask() {
       filtered = filtered.filter(
         (task) => task.employeeName === filterEmployee,
       );
-      console.log("dữ lieueeuue", filtered);
+      // console.log("dữ lieueeuue", filtered);
     }
 
     return filtered;
@@ -185,12 +184,12 @@ function OwnerManageTask() {
     return employee ? employee.name : "Unknown";
   };
 
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "completed").length;
-  const pendingTasks = tasks.filter((t) => t.status !== "completed").length;
-  const highPriorityTasks = tasks.filter(
-    (t) => t.priority === "high" && t.status !== "completed",
-  ).length;
+  // const totalTasks = tasks.length;
+  // const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  // const pendingTasks = tasks.filter((t) => t.status !== "completed").length;
+  // const highPriorityTasks = tasks.filter(
+  //   (t) => t.priority === "high" && t.status !== "completed",
+  // ).length;
 
   const formatDate = (dateString) => {
     if (!dateString) return "No deadline";
@@ -597,66 +596,85 @@ function OwnerManageTask() {
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex">
-                  <div className="task-header">
-                    <h3 className="task-title">{task.title}</h3>
-                    <span className={`status-badge ${task.status}`}>
-                      {task.status === "completed" && "✓ Completed"}
-                      {task.status === "in-progress" && "⚙ In Progress"}
-                      {task.status === "pending" && "⏳ Pending"}
-                    </span>
-                  </div>
-                  <div className="task-meta">
-                    <span className="assigned-to">
-                      <svg viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {getEmployeeName(task.employeeId)}
-                    </span>
-
-                    <span className={`priority-badge ${task.priority}`}>
-                      {task.priority === "high" && "⚡ High"}
-                      {task.priority === "medium" && "→ Medium"}
-                      {task.priority === "low" && "↓ Low"}
-                    </span>
-
-                    {task.dueDate && (
-                      <span
-                        className={`date-badge ${getDateColor(task.dueDate)}`}
-                      >
+                    <div className="task-header">
+                      <h3 className="task-title">{task.title}</h3>
+                      <span className={`status-badge ${task.status}`}>
+                        {task.status === "completed" && "✓ Completed"}
+                        {task.status === "in-progress" && "⚙ In Progress"}
+                        {task.status === "pending" && (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none">
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              />
+                              <path
+                                d="M12 6V12L16 14"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span>Pending</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div className="task-meta">
+                      <span className="assigned-to">
                         <svg viewBox="0 0 24 24" fill="none">
-                          <rect
-                            x="3"
-                            y="4"
-                            width="18"
-                            height="18"
-                            rx="2"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          />
                           <path
-                            d="M16 2V6M8 2V6M3 10H21"
+                            d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
                             stroke="currentColor"
                             strokeWidth="2"
                             strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
                         </svg>
-                        {formatDate(task.dueDate)}
+                        {getEmployeeName(task.employeeId)}
                       </span>
-                    )}
-                  </div>
+
+                      <span className={`priority-badge ${task.priority}`}>
+                        {task.priority === "high" && "⚡ High"}
+                        {task.priority === "medium" && "→ Medium"}
+                        {task.priority === "low" && "↓ Low"}
+                      </span>
+
+                      {task.dueDate && (
+                        <span
+                          className={`date-badge ${getDateColor(task.dueDate)}`}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="3"
+                              y="4"
+                              width="18"
+                              height="18"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            />
+                            <path
+                              d="M16 2V6M8 2V6M3 10H21"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          {formatDate(task.dueDate)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {task.description && (
                     <p className="task-description">{task.description}</p>
@@ -666,7 +684,7 @@ function OwnerManageTask() {
                     {task.status !== "completed" && (
                       <button
                         onClick={() =>
-                          handleUpdateTask(task.taskId, { status: "completed" })
+                          handleUpdateTask(task.taskId, task.employeeId)
                         }
                         className="complete-button"
                       >

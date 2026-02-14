@@ -184,6 +184,7 @@ function OwnerDashboard() {
             <p>Employee Management System</p>
           </div>
         </div>
+        <div className="header-actions">
         <button onClick={handleLogout} className="logout-button">
           <svg viewBox="0 0 24 24" fill="none">
             <path
@@ -210,6 +211,7 @@ function OwnerDashboard() {
           </svg>
           Logout
         </button>
+        </div>
       </header>
 
       {/* Notifications */}
@@ -395,7 +397,7 @@ function OwnerDashboard() {
                 <p>Add, edit, and manage your team members</p>
               </Link>
 
-              <Link to="/owner/manage-tasks" className="action-card">
+              <Link to="/owner/task" className="action-card">
                 <div className="action-icon">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path

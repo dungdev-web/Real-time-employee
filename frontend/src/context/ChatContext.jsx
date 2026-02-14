@@ -14,19 +14,13 @@ const ChatContext = createContext();
 export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [unreadMap, setUnreadMap] = useState({}); // 🔴 UNREAD MAP
-
+  const [unreadMap, setUnreadMap] = useState({});
   const selectedConversationRef = useRef(null);
-
   const userType = localStorage.getItem("userType");
   const ownerId = localStorage.getItem("ownerId");
   const employeeId = localStorage.getItem("employeeId");
-
   const userId = userType === "owner" ? ownerId : employeeId;
-
-  console.log("🔍 ChatProvider initialized:", { userType, userId });
-
-  // Sync ref
+  
   useEffect(() => {
     selectedConversationRef.current = selectedConversation;
   }, [selectedConversation]);

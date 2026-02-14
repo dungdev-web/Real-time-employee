@@ -27,6 +27,7 @@
   gap: 12px;
   flex: 1;
   min-width: 0;
+  flex-direction: row-reverse;
 }
 
 .user-avatar {
@@ -47,10 +48,7 @@
 }
 
 .header-info {
-  flex: 1;
-  min-width: 0;
-
-  h3 {
+    h3 {
     margin: 0;
     font-size: 15px;
     font-weight: 600;
@@ -489,9 +487,9 @@
   }
 
   .chat-header-bar {
-    padding: 10px 12px;
+    padding: 20px 12px;
   }
-
+  .header-leftƠ
   .message-input-section {
     padding: 8px 10px;
   }
@@ -540,5 +538,11 @@
       width: 14px;
       height: 14px;
     }
+  }
+}
+@media (min-width: 1024px){
+  .header-info{
+    flex: 1;
+    min-width: 0;
   }
 }
