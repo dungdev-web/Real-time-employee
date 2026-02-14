@@ -148,25 +148,28 @@ firebase/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/owner/create-access-code` | Generate SMS code |
-| POST | `/api/owner/validate-access-code` | Verify SMS code |
-| GET | `/api/owner/employees` | Get all employees |
-| POST | `/api/owner/get-employee` | Get single employee |
-| POST | `/api/owner/create-employee` | Create new employee |
-| PUT | `/api/owner/update-employee` | Update employee |
-| POST | `/api/owner/delete-employee` | Delete employee |
+| POST | `/api/owner/access-code` | Generate SMS code |
+| POST | `/api/owner/access-code/verify` | Verify SMS code |
+| GET | `/api/owner/all-employees` | Get all employees |
+| GET | `/api/owner/employee/:employeeId` | Get single employee |
+| POST | `/api/owner/employee` | Create new employee |
+| PUT | `/api/owner/employee/:employeeId` | Update employee |
+| DELETE | `/api/owner/employee/:employeeId` | Delete employee |
 
 ### Employee Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/employee/login-email` | Send email code |
-| POST | `/api/employee/validate-access-code` | Verify email code |
+| POST | `/api/employee/email` | Send email code |
+| POST | `/api/employee/` | Login username and password |
+| POST | `/api/employee/access-code/verify-email` | Verify email code |
 | POST | `/api/employee/setup-account` | Setup new account |
-| GET | `/api/employee/profile/:id` | Get profile |
-| PUT | `/api/employee/update-profile` | Update profile |
-| GET | `/api/employee/tasks/:id` | Get tasks |
-| PUT | `/api/employee/task/:id/complete` | Complete task |
+| GET | `/api/employee/profile/:employeeId` | Get profile |
+| PUT | `/api/employee/profile` | Update profile |
+| GET | `/api/employee/tasks/:employeeId` | Get tasks by employee |
+| GET | `/api/employee/tasks` | Get all tasks |
+| POST | `/api/employee/tasks` | Create tasks |
+| PUT | `/api/employee/task/:taskId/complete` | Complete task |
 
 ## Socket.io Events
 
@@ -380,53 +383,5 @@ const conversationId = [userId1, userId2].sort().join('_');
    - Two-factor authentication app support
    - Session management
    - Audit logs
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Firebase Connection Error**
-   - Verify `serviceAccountKey.json` exists
-   - Check database URL in `.env`
-   - Ensure Firebase project is active
-
-2. **Socket.io Not Connecting**
-   - Check CORS settings
-   - Verify Socket URL in frontend
-   - Check firewall settings
-
-3. **SMS/Email Not Sending**
-   - Verify credentials in `.env`
-   - Check service provider status
-   - Review console logs for simulated messages
-
-4. **Access Code Expired**
-   - Codes expire after 10 minutes
-   - Request a new code
-   - Check system time synchronization
-
-## Code Quality Standards
-
-- **Consistent naming** - camelCase for variables, PascalCase for components
-- **Comments** - Explain complex logic
-- **Error messages** - Clear and actionable
-- **Validation** - Input validation on frontend and backend
-- **Separation of concerns** - Controllers, services, and routes separated
-
-## License
-
-MIT License - Free to use for educational and commercial purposes
-
-## Credits
-
-Built as a coding challenge demonstrating full-stack development skills with:
-- Modern JavaScript (ES6+)
-- RESTful API design
-- Real-time communication
-- Database design
-- Authentication flows
-- Third-party API integration
-- Security best practices
-
 ---
 
