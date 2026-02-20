@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { chatAPI } from "../services/api";
-import socketService from "../lib/socket";
+import socketService from "../services/socket";
 import notificationService from "../services/notificationService";
 
 const ChatContext = createContext();

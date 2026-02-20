@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { formatDate, formatTime } from "../lib/format";
-import socketService from "../lib/socket";
+import socketService from "../services/socket";
 import "../css/Chat.scss";
 import { chatAPI } from "../services/api";
 import { Send } from "lucide-react";
