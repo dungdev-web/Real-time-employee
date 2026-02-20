@@ -171,6 +171,11 @@ firebase/
 | POST | `/api/employee/tasks` | Create tasks |
 | PUT | `/api/employee/task/:taskId/complete` | Complete task |
 
+### Employee Endpoints
+| Method | Endpoint | Description |
+| GET | `/api/chat/conversations` | Get recent conversations |
+| GET | `/api/chat/messages/:conversationId` | Get history conversations |
+
 ## Socket.io Events
 
 ### Client → Server
@@ -219,11 +224,13 @@ employee-task-management/
 │   ├── config/
 │   │   └── firebase.js
 │   ├── controllers/
+|   |   ├── chatController.js
 │   │   ├── ownerController.js
 │   │   └── employeeController.js
 │   ├── routes/
-│   │   ├── ownerRoutes.js
-│   │   └── employeeRoutes.js
+│   │   ├── chat.routes.js
+│   │   ├── owner.routes.js
+│   │   └── employee.routes.js
 │   ├── services/
 │   │   ├── smsService.js
 │   │   └── emailService.js
@@ -238,8 +245,10 @@ employee-task-management/
 │   │   └── index.html
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Chat.js
-│   │   │   └── Chat.css
+│   │   │   ├── Chat.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── SidebarEmployee.jsx
+│   │   │   └── SidebarOwner.jsx
 │   │   ├── pages/
 │   │   │   ├── OwnerLogin.js
 │   │   │   ├── OwnerDashboard.js
