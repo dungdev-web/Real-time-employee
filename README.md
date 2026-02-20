@@ -171,7 +171,7 @@ firebase/
 | POST | `/api/employee/tasks` | Create tasks |
 | PUT | `/api/employee/task/:taskId/complete` | Complete task |
 
-### Employee Endpoints
+### Message Endpoints
 | Method | Endpoint | Description |
 | GET | `/api/chat/conversations` | Get recent conversations |
 | GET | `/api/chat/messages/:conversationId` | Get history conversations |
